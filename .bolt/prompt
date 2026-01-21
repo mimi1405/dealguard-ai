@@ -1,0 +1,88 @@
+For all designs I ask you to make, have them be beautiful, not cookie cutter.
+Make webpages that are fully featured and worthy for production use.
+
+====================================
+NEXT.JS / REACT RULES
+====================================
+
+- This project uses Next.js App Router.
+- Components are Server Components by default.
+- When using client-side hooks (useState, useEffect, useRef, etc),
+  ALWAYS add "use client" at the very top of the file.
+
+- Do NOT write code that triggers hydration mismatch errors such as:
+  "Warning: Extra attributes from the server: class, style"
+
+- Do NOT mix server-only logic into client components.
+
+====================================
+UI / DESIGN SYSTEM
+====================================
+
+- Use Tailwind CSS for styling.
+- Use shadcn/ui for all UI primitives.
+- Use lucide-react for icons.
+- Do NOT install or use other UI libraries unless explicitly requested.
+
+- Prefer clean layouts, strong hierarchy, and subtle animations.
+- Default to dark theme when appropriate.
+
+====================================
+SECURITY & SERVER-SIDE RULES (CRITICAL)
+====================================
+
+- API keys, secrets, and tokens MUST NEVER be exposed to the client.
+- Any integration with external APIs (e.g. MindStudio) MUST be implemented server-side only:
+  - Next.js Route Handlers
+  - Server Actions
+  - Edge Functions (Supabase)
+
+- The client may only call internal API routes.
+
+====================================
+SUPABASE RULES
+====================================
+
+- Supabase Auth is used for authentication.
+- All protected routes MUST verify an active session.
+- Row Level Security (RLS) MUST be enforced.
+- Database access must always respect auth.uid().
+
+====================================
+FILE HANDLING & PREPROCESSING
+====================================
+
+- Users may upload PDFs only.
+- Uploaded PDFs MUST be converted to text.
+- Only extracted text artifacts (txt/md) may be sent to external AI services.
+- Enforce a strict 10MB limit on any file sent to external services.
+- Original files may be stored for user access, but never forwarded to AI services.
+
+====================================
+MINDSTUDIO INTEGRATION
+====================================
+
+- MindStudio is accessed ONLY via the official Developer API v2
+  or the official "mindstudio" NPM package.
+- MindStudio calls MUST be server-side only.
+- Never hardcode API keys; always use environment variables.
+- Inputs to MindStudio must be structured and deterministic.
+
+====================================
+CODE QUALITY
+====================================
+
+- Write clean, readable, production-grade code.
+- Prefer explicit over implicit behavior.
+- Avoid magic values and undocumented assumptions.
+- All core flows must be implemented end-to-end (no TODO placeholders).
+
+====================================
+DEFAULT ASSUMPTIONS
+====================================
+
+Unless explicitly stated otherwise:
+- Use Next.js App Router conventions
+- Use Supabase for auth, database, and storage
+- Use shadcn/ui + Tailwind + lucide-react
+- Assume production readiness is required
