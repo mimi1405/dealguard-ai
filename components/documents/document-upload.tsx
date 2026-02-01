@@ -141,23 +141,20 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
       // Wichtig: wir behalten deine alten Felder bei, füllen sie aber sauber.
       const documentData: any = {
         id: documentId,
-        project_id: projectId,
-        owner_id: user.id,
-
-        original_file_name: file.name,
-        original_pdf_path: pdfPath,
-        original_size_bytes: file.size,
-
-        // ALT: bisher hast du extracted text in storage geschrieben – jetzt nicht mehr.
-        text_file_paths: [],
-        text_size_bytes: 0,
-
-        // Statusfelder: jetzt ist der Doc "uploaded" und wartet auf n8n processing.
-        text_extract_status: "uploaded", // oder "queued"
-        status: "uploaded",
-
+        deal_id: projectId, // wichtig: projectId ist bei dir offenbar die deal_id
         doc_type: mapCategoryToDocType(category),
-      };
+      
+        title: null,
+        original_filename: file.name,
+      
+        storage_bucket: "dealguard-docs",
+        storage_path: pdfPath,
+        mime_type: file.type,
+        size_bytes: file.size,
+
+        // status nur setzen, wenn es bei dir wirklich existiert und der Wert erlaubt ist
+        // status: "uploaded",
+        };
 
       setProgress(85);
 
