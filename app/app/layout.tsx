@@ -41,7 +41,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navigation = [
     { name: 'Dashboard', href: '/app', icon: LayoutDashboard },
-    { name: 'Projects', href: '/app/projects', icon: FolderKanban },
+    { name: 'Deals', href: '/app/projects', icon: FolderKanban },
   ];
 
   const Sidebar = () => (

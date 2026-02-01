@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { DocumentType } from "@/lib/types/database";
 
 const DOCUMENT_CATEGORIES = [
   "Pitch Deck",
@@ -23,7 +24,7 @@ const DOCUMENT_CATEGORIES = [
   "Other",
 ];
 
-const mapCategoryToDocType = (cat: string) => {
+const mapCategoryToDocType = (cat: string): DocumentType => {
   switch (cat) {
     case "Pitch Deck":
       return "pitchdeck";
@@ -39,12 +40,13 @@ const mapCategoryToDocType = (cat: string) => {
       return "other";
   }
 };
+
 interface DocumentUploadProps {
-  projectId: string;
+  dealId: string;
   onUploadComplete: () => void;
 }
 
-export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadProps) {
+export function DocumentUpload({ dealId, onUploadComplete }: DocumentUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState<string>("");
   const [uploading, setUploading] = useState(false);
@@ -96,22 +98,12 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
     }
   };
 
-  const uploadOriginalPdf = async (userId: string, documentId: string, file: File) => {
-    // Path-Pattern frei wählbar – wichtig ist: konsistent & wiederauffindbar für n8n
-    const pdfPath = `${userId}/${projectId}/${documentId}/original.pdf`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("dealguard-docs")
-      .upload(pdfPath, file, {
-        contentType: "application/pdf",
-        upsert: false,
-      });
-
-    if (uploadError) throw uploadError;
-    return pdfPath;
-  };
-
   const handleUpload = async () => {
+    if (!dealId) {
+      setError("Error: Deal ID is missing. Cannot upload document.");
+      return;
+    }
+
     if (!file || !category) {
       setError("Please select a file and category");
       return;
@@ -121,59 +113,82 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
     setProgress(0);
     setError(null);
 
+    let uploadedFilePath: string | null = null;
+
     try {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
-
-      if (authError) throw authError;
-      if (!user) throw new Error("Not authenticated");
-
       const documentId = crypto.randomUUID();
+      const storagePath = `deals/${dealId}/documents/${documentId}/original.pdf`;
 
-      // 1) Upload PDF to Storage (source of truth)
-      setProgress(15);
-      const pdfPath = await uploadOriginalPdf(user.id, documentId, file);
-      setProgress(65);
+      setProgress(10);
 
-      // 2) Insert DB row (processing later by n8n)
-      // Wichtig: wir behalten deine alten Felder bei, füllen sie aber sauber.
-      const documentData: any = {
+      const { error: uploadError } = await supabase.storage
+        .from("dealguard-docs")
+        .upload(storagePath, file, {
+          contentType: "application/pdf",
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+      uploadedFilePath = storagePath;
+
+      setProgress(60);
+
+      const documentData = {
         id: documentId,
-        deal_id: projectId, // wichtig: projectId ist bei dir offenbar die deal_id
+        deal_id: dealId,
         doc_type: mapCategoryToDocType(category),
-      
         title: null,
         original_filename: file.name,
-      
         storage_bucket: "dealguard-docs",
-        storage_path: pdfPath,
+        storage_path: storagePath,
         mime_type: file.type,
         size_bytes: file.size,
+        status: "uploaded" as const,
+      };
 
-        // status nur setzen, wenn es bei dir wirklich existiert und der Wert erlaubt ist
-        // status: "uploaded",
-        };
-
-      setProgress(85);
+      setProgress(80);
 
       const { error: dbError } = await supabase.from("documents").insert(documentData);
-      if (dbError) throw dbError;
+
+      if (dbError) {
+        if (uploadedFilePath) {
+          await supabase.storage
+            .from("dealguard-docs")
+            .remove([uploadedFilePath])
+            .catch((cleanupErr) => {
+              console.error("Failed to cleanup orphaned file:", cleanupErr);
+            });
+        }
+        throw dbError;
+      }
 
       setProgress(100);
 
-      // Reset
       setFile(null);
       setCategory("");
       onUploadComplete();
     } catch (err: any) {
+      console.error("Upload error:", err);
       setError(err?.message ?? "Failed to upload document");
     } finally {
       setUploading(false);
       setTimeout(() => setProgress(0), 800);
     }
   };
+
+  if (!dealId) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center gap-3 p-4 bg-destructive/10 text-destructive rounded-lg">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Cannot upload documents</p>
+            <p className="text-sm">Deal ID is missing. Please refresh the page or contact support.</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-6">
