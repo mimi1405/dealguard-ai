@@ -13,9 +13,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 1) Ensure deal exists
     const { data: deal, error: dealError } = await supabase
       .from('deals')
-      .select('*')
+      .select('id')
       .eq('id', dealId)
       .maybeSingle();
 
@@ -26,78 +27,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: documents, error: docsError } = await supabase
+    // 2) Ensure documents exist
+    const { count, error: docsError } = await supabase
       .from('documents')
-      .select('*')
+      .select('*', { count: 'exact', head: true })
       .eq('deal_id', dealId);
 
-    if (docsError) {
-      throw docsError;
-    }
+    if (docsError) throw docsError;
 
-    if (!documents || documents.length === 0) {
+    if (!count || count === 0) {
       return NextResponse.json(
         { error: 'No documents found for this deal. Please upload documents first.' },
         { status: 400 }
       );
     }
 
-    const { error: updateError } = await supabase
+    // 3) Mark run + deal as running
+    await supabase
       .from('dd_runs')
       .update({ status: 'running' })
       .eq('id', runId);
 
-    if (updateError) {
-      console.error('Failed to update run status:', updateError);
-    }
-
-    const { error: dealUpdateError } = await supabase
+    await supabase
       .from('deals')
       .update({ status: 'running', last_run_id: runId })
       .eq('id', dealId);
 
-    if (dealUpdateError) {
-      console.error('Failed to update deal status:', dealUpdateError);
-    }
-
+    // 4) Trigger n8n (minimal contract)
     const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
-
-    if (n8nWebhookUrl) {
-      const payload = {
-        dealId,
-        runId,
-        deal: {
-          name: deal.name,
-          deal_type: deal.deal_type,
-          industry: deal.industry,
-          jurisdiction: deal.jurisdiction,
-          stage: deal.stage,
-          transaction_volume_range: deal.transaction_volume_range,
-        },
-        documents: documents.map(doc => ({
-          id: doc.id,
-          doc_type: doc.doc_type,
-          original_filename: doc.original_filename,
-          storage_bucket: doc.storage_bucket,
-          storage_path: doc.storage_path,
-          size_bytes: doc.size_bytes,
-        })),
-      };
-
+    if (!n8nWebhookUrl) {
+      console.warn('N8N_WEBHOOK_URL not configured');
+    } else {
       fetch(n8nWebhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).catch((err) => {
+        body: JSON.stringify({ dealId, runId }),
+      }).catch(err => {
         console.error('Failed to trigger n8n webhook:', err);
       });
-    } else {
-      console.warn('N8N_WEBHOOK_URL not configured. Skipping n8n trigger.');
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Due diligence run triggered successfully',
       runId,
       dealId,
     });
