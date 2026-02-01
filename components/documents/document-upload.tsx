@@ -4,27 +4,24 @@ import { useState, useCallback } from "react";
 import { Upload, X, FileText, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import * as pdfjsLib from "pdfjs-dist";
-
-(pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-
-
-
 
 const DOCUMENT_CATEGORIES = [
-  'Pitch Deck',
-  'Financials',
-  'Legal',
-  'Cap Table',
-  'Contracts',
-  'Other',
+  "Pitch Deck",
+  "Financials",
+  "Legal",
+  "Cap Table",
+  "Contracts",
+  "Other",
 ];
-
-const MAX_TEXT_SIZE = 10 * 1024 * 1024;
-const CHUNK_SIZE = 9 * 1024 * 1024;
 
 interface DocumentUploadProps {
   projectId: string;
@@ -33,45 +30,48 @@ interface DocumentUploadProps {
 
 export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [category, setCategory] = useState<string>('');
+  const [category, setCategory] = useState<string>("");
   const [uploading, setUploading] = useState(false);
-  const [extracting, setExtracting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+
   const supabase = createClient();
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
+    if (e.type === "dragenter" || e.type === "dragover") {
       setDragActive(true);
-    } else if (e.type === 'dragleave') {
+    } else if (e.type === "dragleave") {
       setDragActive(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      validateAndSetFile(files[0]);
     }
   }, []);
 
   const validateAndSetFile = (selectedFile: File) => {
     setError(null);
 
-    if (selectedFile.type !== 'application/pdf') {
-      setError('Only PDF files are allowed');
+    if (selectedFile.type !== "application/pdf") {
+      setError("Only PDF files are allowed");
       return;
     }
 
     setFile(selectedFile);
   };
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+
+      const files = e.dataTransfer.files;
+      if (files && files[0]) {
+        validateAndSetFile(files[0]);
+      }
+    },
+    []
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -80,113 +80,24 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
     }
   };
 
-  const extractTextFromPDF = async (file: File): Promise<string> => {
-    setExtracting(true);
-    setProgress(10);
+  const uploadOriginalPdf = async (userId: string, documentId: string, file: File) => {
+    // Path-Pattern frei wählbar – wichtig ist: konsistent & wiederauffindbar für n8n
+    const pdfPath = `${userId}/${projectId}/${documentId}/original.pdf`;
 
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      const numPages = pdf.numPages;
-      let fullText = '';
+    const { error: uploadError } = await supabase.storage
+      .from("dealguard-docs")
+      .upload(pdfPath, file, {
+        contentType: "application/pdf",
+        upsert: false,
+      });
 
-      for (let i = 1; i <= numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ');
-        fullText += pageText + '\n\n';
-
-        setProgress(10 + (i / numPages) * 40);
-      }
-
-      const cleaned = fullText.replace(/\s+/g, " ").trim();
-
-      // Wenn quasi gar nichts da ist: echte "kein Text" Situation
-      if (cleaned.length < 10) {
-        throw new Error("Kein Text-Layer gefunden. PDF wirkt gescannt/als Bilder. Bitte OCR-PDF hochladen.");
-      }
-      
-      // Wenn wenig Text da ist: trotzdem erlauben, aber warnen (kein harter Stop)
-      if (cleaned.length < 100) {
-        // Optional: nur Warning anzeigen statt throw
-        console.warn("Low extracted text length:", cleaned.length);
-      }
-
-
-      return fullText;
-    } catch (err: any) {
-      throw new Error(err.message || 'Failed to extract text from PDF');
-    } finally {
-      setExtracting(false);
-    }
-  };
-
-  const chunkText = (text: string): string[] => {
-    const textSize = new Blob([text]).size;
-
-    if (textSize <= MAX_TEXT_SIZE) {
-      return [text];
-    }
-
-    const chunks: string[] = [];
-    const encoder = new TextEncoder();
-    const lines = text.split('\n');
-    let currentChunk = '';
-
-    for (const line of lines) {
-      const testChunk = currentChunk + line + '\n';
-      const size = encoder.encode(testChunk).length;
-
-      if (size > CHUNK_SIZE) {
-        if (currentChunk) {
-          chunks.push(currentChunk);
-        }
-        currentChunk = line + '\n';
-      } else {
-        currentChunk = testChunk;
-      }
-    }
-
-    if (currentChunk) {
-      chunks.push(currentChunk);
-    }
-
-    return chunks;
-  };
-
-  const uploadToStorage = async (userId: string, documentId: string, textChunks: string[]) => {
-    setProgress(60);
-    const textFilePaths: string[] = [];
-
-    for (let i = 0; i < textChunks.length; i++) {
-      const fileName = textChunks.length === 1
-        ? 'extracted.txt'
-        : `extracted_part_${i + 1}.txt`;
-
-      const filePath = `${userId}/${projectId}/${documentId}/${fileName}`;
-      const textBlob = new Blob([textChunks[i]], { type: 'text/plain' });
-
-      const { error: uploadError } = await supabase.storage
-        .from('dealguard-docs')
-        .upload(filePath, textBlob, {
-          contentType: 'text/plain',
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-      textFilePaths.push(filePath);
-
-      setProgress(60 + ((i + 1) / textChunks.length) * 30);
-    }
-
-    return textFilePaths;
+    if (uploadError) throw uploadError;
+    return pdfPath;
   };
 
   const handleUpload = async () => {
     if (!file || !category) {
-      setError('Please select a file and category');
+      setError("Please select a file and category");
       return;
     }
 
@@ -195,49 +106,59 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-      const extractedText = await extractTextFromPDF(file);
-
-      const textChunks = chunkText(extractedText);
-      const textSize = textChunks.reduce((sum, chunk) => sum + new Blob([chunk]).size, 0);
+      if (authError) throw authError;
+      if (!user) throw new Error("Not authenticated");
 
       const documentId = crypto.randomUUID();
 
-      const textFilePaths = await uploadToStorage(user.id, documentId, textChunks);
+      // 1) Upload PDF to Storage (source of truth)
+      setProgress(15);
+      const pdfPath = await uploadOriginalPdf(user.id, documentId, file);
+      setProgress(65);
 
-      setProgress(95);
-
+      // 2) Insert DB row (processing later by n8n)
+      // Wichtig: wir behalten deine alten Felder bei, füllen sie aber sauber.
       const documentData: any = {
         id: documentId,
         project_id: projectId,
         owner_id: user.id,
+
         original_file_name: file.name,
-        original_pdf_path: '',
+        original_pdf_path: pdfPath,
         original_size_bytes: file.size,
-        text_file_paths: textFilePaths,
-        text_size_bytes: textSize,
-        text_extract_status: 'done',
+
+        // ALT: bisher hast du extracted text in storage geschrieben – jetzt nicht mehr.
+        text_file_paths: [],
+        text_size_bytes: 0,
+
+        // Statusfelder: jetzt ist der Doc "uploaded" und wartet auf n8n processing.
+        text_extract_status: "uploaded", // oder "queued"
+        status: "uploaded",
+
         document_category: category,
-        status: 'ready',
       };
 
-      const { error: dbError } = await supabase
-        .from('documents')
-        .insert(documentData);
+      setProgress(85);
 
+      const { error: dbError } = await supabase.from("documents").insert(documentData);
       if (dbError) throw dbError;
 
       setProgress(100);
+
+      // Reset
       setFile(null);
-      setCategory('');
+      setCategory("");
       onUploadComplete();
     } catch (err: any) {
-      setError(err.message || 'Failed to upload document');
+      setError(err?.message ?? "Failed to upload document");
     } finally {
       setUploading(false);
-      setTimeout(() => setProgress(0), 1000);
+      setTimeout(() => setProgress(0), 800);
     }
   };
 
@@ -246,10 +167,8 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
       <div className="space-y-4">
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            dragActive
-              ? 'border-primary bg-primary/10'
-              : 'border-border hover:border-primary/50'
-          } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+            dragActive ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+          } ${uploading ? "opacity-50 pointer-events-none" : ""}`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
@@ -258,12 +177,11 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
           <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <div className="space-y-2">
             <p className="text-lg font-medium">
-              {file ? file.name : 'Drop PDF here or click to browse'}
+              {file ? file.name : "Drop PDF here or click to browse"}
             </p>
-            <p className="text-sm text-muted-foreground">
-              Only PDF files are supported
-            </p>
+            <p className="text-sm text-muted-foreground">Only PDF files are supported</p>
           </div>
+
           <input
             type="file"
             accept="application/pdf"
@@ -272,10 +190,11 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
             id="file-upload"
             disabled={uploading}
           />
+
           <Button
             variant="outline"
             className="mt-4"
-            onClick={() => document.getElementById('file-upload')?.click()}
+            onClick={() => document.getElementById("file-upload")?.click()}
             disabled={uploading}
           >
             <FileText className="mr-2 h-4 w-4" />
@@ -325,21 +244,18 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>
-                    {extracting
-                      ? 'Extracting text...'
-                      : progress < 60
-                      ? 'Processing...'
-                      : progress < 95
-                      ? 'Uploading...'
-                      : 'Saving...'}
+                    {progress < 20
+                      ? "Preparing..."
+                      : progress < 70
+                      ? "Uploading PDF..."
+                      : progress < 90
+                      ? "Saving metadata..."
+                      : "Finalizing..."}
                   </span>
                   <span>{Math.round(progress)}%</span>
                 </div>
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all"
-                    style={{ width: `${progress}%` }}
-                  />
+                  <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
                 </div>
               </div>
             )}
@@ -351,12 +267,8 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
               </div>
             )}
 
-            <Button
-              onClick={handleUpload}
-              disabled={uploading || !category}
-              className="w-full"
-            >
-              {uploading ? 'Uploading...' : 'Upload Document'}
+            <Button onClick={handleUpload} disabled={uploading || !category} className="w-full">
+              {uploading ? "Uploading..." : "Upload Document"}
             </Button>
           </div>
         )}
