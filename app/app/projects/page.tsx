@@ -5,58 +5,70 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Building } from 'lucide-react';
+import { Plus, Calendar, TrendingUp, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
+import { Deal, DEAL_TYPE_LABELS, DEAL_STATUS_LABELS } from '@/lib/types/database';
 
-type Project = {
-  id: string;
-  project_name: string;
-  client_name: string;
-  project_type: string;
-  confidentiality_level: string;
-  created_at: string;
-};
-
-export default function ProjectsPage() {
+export default function DealsPage() {
   const supabase = createClient();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProjects = async () => {
+    const fetchDeals = async () => {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
-
         const { data, error } = await supabase
-          .from('projects')
+          .from('deals')
           .select('*')
-          .eq('owner_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('updated_at', { ascending: false });
 
         if (error) throw error;
-        setProjects(data || []);
+        setDeals(data || []);
       } catch (error) {
-        console.error('Error fetching projects:', error);
+        console.error('Error fetching deals:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProjects();
+    fetchDeals();
   }, [supabase]);
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'running':
+        return <Clock className="h-4 w-4 text-blue-500 animate-pulse" />;
+      case 'failed':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-500/10 text-green-500 border-green-500/20';
+      case 'running':
+        return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+      case 'failed':
+        return 'bg-red-500/10 text-red-500 border-red-500/20';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
 
   const getConfidentialityColor = (level: string) => {
     switch (level) {
-      case 'High':
-        return 'bg-destructive text-destructive-foreground';
-      case 'Medium':
-        return 'bg-yellow-500 text-white';
-      case 'Low':
-        return 'bg-green-500 text-white';
+      case 'high':
+        return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case 'medium':
+        return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+      case 'low':
+        return 'bg-green-500/10 text-green-500 border-green-500/20';
       default:
         return 'bg-muted';
     }
@@ -66,64 +78,83 @@ export default function ProjectsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
+          <h1 className="text-3xl font-bold">Deals</h1>
           <p className="text-muted-foreground mt-2">
-            Manage your due diligence projects
+            AI-powered due diligence for investment opportunities
           </p>
         </div>
         <Button asChild>
           <Link href="/app/projects/new">
             <Plus className="mr-2 h-4 w-4" />
-            New Project
+            New Deal
           </Link>
         </Button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading projects...</div>
-      ) : projects.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">Loading deals...</div>
+      ) : deals.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+            <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No deals yet</h3>
             <p className="text-muted-foreground mb-4">
-              Create your first project to get started with due diligence analysis
+              Create your first deal to get started with AI-powered due diligence
             </p>
             <Button asChild>
               <Link href="/app/projects/new">
                 <Plus className="mr-2 h-4 w-4" />
-                Create Project
+                Create Deal
               </Link>
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <Link key={project.id} href={`/app/projects/${project.id}`}>
+          {deals.map((deal) => (
+            <Link key={deal.id} href={`/app/projects/${deal.id}`}>
               <Card className="hover:border-primary transition-colors cursor-pointer h-full">
                 <CardHeader>
                   <div className="flex items-start justify-between mb-2">
-                    <CardTitle className="text-lg">{project.project_name}</CardTitle>
-                    <Badge className={getConfidentialityColor(project.confidentiality_level)}>
-                      {project.confidentiality_level}
-                    </Badge>
+                    <CardTitle className="text-lg">{deal.name}</CardTitle>
+                    <div className="flex gap-2">
+                      <Badge variant="outline" className={getStatusColor(deal.status)}>
+                        <span className="flex items-center gap-1">
+                          {getStatusIcon(deal.status)}
+                          {DEAL_STATUS_LABELS[deal.status]}
+                        </span>
+                      </Badge>
+                    </div>
                   </div>
-                  <CardDescription className="flex items-center gap-2">
-                    <Building className="h-4 w-4" />
-                    {project.client_name}
+                  <CardDescription>
+                    {DEAL_TYPE_LABELS[deal.deal_type]}
+                    {deal.industry && ` • ${deal.industry}`}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Type: </span>
-                      <span className="font-medium">{project.project_type}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>
-                        Created {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
-                      </span>
+                    {deal.stage && (
+                      <div>
+                        <span className="text-muted-foreground">Stage: </span>
+                        <span className="font-medium capitalize">{deal.stage.replace('_', ' ')}</span>
+                      </div>
+                    )}
+                    {deal.jurisdiction && (
+                      <div>
+                        <span className="text-muted-foreground">Jurisdiction: </span>
+                        <span className="font-medium">{deal.jurisdiction}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-2">
+                      <Badge variant="outline" className={getConfidentialityColor(deal.confidentiality_level)}>
+                        {deal.confidentiality_level.toUpperCase()}
+                      </Badge>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span className="text-xs">
+                          {formatDistanceToNow(new Date(deal.updated_at), { addSuffix: true })}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
