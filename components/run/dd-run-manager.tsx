@@ -115,7 +115,8 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
     }
   };
 
-  const currentRun = runs.find(r => r.status === 'running' || r.status === 'queued');
+  const currentRun = runs.find(r => r.status === 'running');
+  const queuedRun = runs.find(r => r.status === 'queued');
 
   return (
     <div className="space-y-6">
