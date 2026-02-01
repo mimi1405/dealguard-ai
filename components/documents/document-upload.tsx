@@ -23,6 +23,22 @@ const DOCUMENT_CATEGORIES = [
   "Other",
 ];
 
+const mapCategoryToDocType = (cat: string) => {
+  switch (cat) {
+    case "Pitch Deck":
+      return "pitchdeck";
+    case "Financials":
+      return "financials";
+    case "Legal":
+      return "legal";
+    case "Cap Table":
+      return "cap_table";
+    case "Contracts":
+      return "contracts";
+    default:
+      return "other";
+  }
+};
 interface DocumentUploadProps {
   projectId: string;
   onUploadComplete: () => void;
@@ -140,7 +156,7 @@ export function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadPr
         text_extract_status: "uploaded", // oder "queued"
         status: "uploaded",
 
-        document_category: category,
+        doc_type: mapCategoryToDocType(category),
       };
 
       setProgress(85);
