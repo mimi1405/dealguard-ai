@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Shield, Brain, CheckCircle } from "lucide-react";
 import { CodexTrailBackground } from "@/components/landing/codex-trail-background";
-import { HoverVideoIcon } from "@/components/landing/hover-video-icon";
+import { HoverVideoIcon } from "@/components/landing/hover-play-once-icon";
 
 export default function Home() {
   return (
