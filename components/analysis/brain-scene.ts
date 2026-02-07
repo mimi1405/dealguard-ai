@@ -79,6 +79,9 @@ const VERTEX_SHADER = `
 
     // Subtle alpha mix => no permanent "filled" look
     vAlpha = aBaseAlpha * 0.28 + aActivation * 0.22;
+    float r = length(aOriginalPos * vec3(1.0, 1.2, 1.0));
+    float edge = smoothstep(1.0, 0.75, r);
+    vAlpha *= mix(0.6, 1.2, edge);
     vActivation = aActivation;
 
     // Depth factor for 3D layering (farther points dimmer)
