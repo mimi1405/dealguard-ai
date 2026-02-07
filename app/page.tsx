@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Shield, Brain, CheckCircle } from "lucide-react";
 import { CodexTrailBackground } from "@/components/landing/codex-trail-background";
-import { HoverVideoIcon } from "@/components/landing/hover-play-once-icon";
+import { HoverPlayOnceIcon } from "@/components/landing/hover-play-once-icon";
 
 export default function Home() {
   return (
@@ -30,10 +30,11 @@ export default function Home() {
         <section className="relative min-h-[100vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
           <CodexTrailBackground />
           <div className="relative z-10 flex flex-col items-center text-center">
-            <HoverVideoIcon
-              src="https://fcwdgsfspejqfyjmazvk.supabase.co/storage/v1/object/public/web_data/final.mp4"
-              poster="/brain-poster.png"
-            />
+           
+            <HoverPlayOnceIcon
+  src="https://fcwdgsfspejqfyjmazvk.supabase.co/storage/v1/object/public/web_data/final.mp4"
+  poster="/brain-poster.png"
+/>
             <h1 className="text-8xl font-bold mb-6 bg-gradient-to-r from-white via-white/60 to-white bg-clip-text text-transparent">
               scoraxAI
             </h1>
