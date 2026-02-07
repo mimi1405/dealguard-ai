@@ -74,7 +74,7 @@ const VERTEX_SHADER = `
     float perspective = 60.0 / -mvPosition.z;
     gl_PointSize = clamp(size * perspective, 1.5, 5.0);
 
-    vAlpha = 0.3 + aBaseAlpha * 0.5 + aActivation * 0.4;
+    vAlpha = aBaseAlpha * 0.18 + aActivation * 0.22;
     vActivation = aActivation;
 
     gl_Position = projectionMatrix * mvPosition;
@@ -99,7 +99,7 @@ const FRAGMENT_SHADER = `
     vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.6, vActivation));
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.3);
 
-    float alpha = strength * vAlpha * 0.9;
+    float alpha = strength * vAlpha * 0.12;
     gl_FragColor = vec4(color, alpha);
   }
 `;
