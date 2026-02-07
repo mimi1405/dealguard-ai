@@ -52,7 +52,7 @@ export function BrainAnimation({ particleCount = 20000, className }: BrainAnimat
     return (
       <div className={`flex items-center justify-center bg-[#0b0d10] ${className ?? ''}`}>
         <div className="relative flex items-center justify-center">
-          <div className="h-32 w-32 rounded-full border border-white/10 animate-pulse" />
+          <div className="h-full rounded-full border border-white/10 animate-pulse" />
           <div className="absolute h-20 w-20 rounded-full border border-white/5 animate-pulse" style={{ animationDelay: '0.5s' }} />
         </div>
       </div>
