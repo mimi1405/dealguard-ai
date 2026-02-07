@@ -78,9 +78,9 @@ const VERTEX_SHADER = `
 
     float r = length(aOriginalPos * vec3(1.0, 1.33, 1.18));
     float coreWeight = smoothstep(1.0, 0.3, r);
-    float edgeFade = smoothstep(1.05, 0.85, r);
+    float edgeFade = smoothstep(1.08, 0.83, r);
 
-    vAlpha = aBaseAlpha * 0.68 * mix(0.38, 1.0, coreWeight) * edgeFade;
+    vAlpha = aBaseAlpha * 0.76 * mix(0.44, 1.0, coreWeight) * edgeFade;
     vAlpha += aActivation * 0.35;
 
     vActivation = aActivation;
@@ -108,7 +108,7 @@ const FRAGMENT_SHADER = `
     if (dist > 0.5) discard;
 
     float strength = 1.0 - smoothstep(0.0, 0.5, dist);
-    strength = pow(strength, 2.2);
+    strength = pow(strength, 2.0);
 
     vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.4, vActivation));
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.2);
@@ -187,8 +187,8 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        uBaseColor: { value: new THREE.Color('#a8b4c0') },
-        uActiveColor: { value: new THREE.Color('#4a86b8') },
+        uBaseColor: { value: new THREE.Color('#b0bbc6') },
+        uActiveColor: { value: new THREE.Color('#5a94c8') },
         uWarmColor: { value: new THREE.Color('#c9a96e') },
       },
       transparent: true,
