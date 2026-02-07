@@ -103,7 +103,7 @@ const FRAGMENT_SHADER = `
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.3);
 
     // No alpha floor -- dim particles stay dim, preventing white-fill accumulation
-    float alpha = strength * vAlpha * 0.45;
+    float alpha = strength * vAlpha * 0.8;
     gl_FragColor = vec4(color, alpha);
   }
 `;
