@@ -8,6 +8,7 @@ const VERTEX_SHADER = `
   varying float vAlpha;
   varying float vActivation;
   varying float vDepth;
+  varying float vEdge;
 
   uniform float uTime;
   uniform float uPixelRatio;
@@ -61,31 +62,32 @@ const VERTEX_SHADER = `
   }
 
   void main() {
-    // Gentle drift (keep calm)
-    float drift = 0.035;
+    float drift = 0.03;
     vec3 offset = vec3(
-      snoise(aOriginalPos * 2.0 + uTime * 0.15) * drift,
-      snoise(aOriginalPos * 2.0 + uTime * 0.15 + 100.0) * drift,
-      snoise(aOriginalPos * 2.0 + uTime * 0.15 + 200.0) * drift
+      snoise(aOriginalPos * 2.0 + uTime * 0.12) * drift,
+      snoise(aOriginalPos * 2.0 + uTime * 0.12 + 100.0) * drift,
+      snoise(aOriginalPos * 2.0 + uTime * 0.12 + 200.0) * drift
     );
 
     vec3 pos = aOriginalPos + offset;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
 
-    // Smaller, clamped point sizes => no foggy blob
-    float size = (0.7 + aBaseAlpha * 0.6) * uPixelRatio;
+    float size = (0.8 + aBaseAlpha * 0.5) * uPixelRatio;
     float perspective = 60.0 / -mvPosition.z;
-    gl_PointSize = clamp(size * perspective, 1.0, 2.6);
+    gl_PointSize = clamp(size * perspective, 1.0, 2.8);
 
-    // Subtle alpha mix => no permanent "filled" look
-    vAlpha = aBaseAlpha * 0.28 + aActivation * 0.22;
-    float r = length(aOriginalPos * vec3(1.0, 1.2, 1.0));
-    float edge = smoothstep(1.0, 0.75, r);
-    vAlpha *= mix(0.6, 1.2, edge);
+    float r = length(aOriginalPos * vec3(1.0, 1.33, 1.18));
+    float coreWeight = smoothstep(1.0, 0.3, r);
+    float edgeFade = smoothstep(1.05, 0.85, r);
+
+    vAlpha = aBaseAlpha * 0.6 * mix(0.35, 1.0, coreWeight) * edgeFade;
+    vAlpha += aActivation * 0.25;
+
     vActivation = aActivation;
+    vEdge = 1.0 - edgeFade;
 
-    // Depth factor for 3D layering (farther points dimmer)
-    vDepth = clamp((-mvPosition.z - 2.0) / 2.0, 0.0, 1.0);
+    float viewZ = -mvPosition.z;
+    vDepth = clamp((viewZ - 2.5) / 1.8, 0.0, 1.0);
 
     gl_Position = projectionMatrix * mvPosition;
   }
@@ -95,6 +97,7 @@ const FRAGMENT_SHADER = `
   varying float vAlpha;
   varying float vActivation;
   varying float vDepth;
+  varying float vEdge;
 
   uniform vec3 uBaseColor;
   uniform vec3 uActiveColor;
@@ -104,16 +107,14 @@ const FRAGMENT_SHADER = `
     float dist = length(gl_PointCoord - vec2(0.5));
     if (dist > 0.5) discard;
 
-    // Crisper particle falloff
     float strength = 1.0 - smoothstep(0.0, 0.5, dist);
     strength = pow(strength, 2.4);
 
-    vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.6, vActivation));
-    color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.25);
+    vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.5, vActivation));
+    color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.2);
 
-    // IMPORTANT: remove alpha floor, use global dimmer, add depth fade
-    float alpha = strength * vAlpha * 0.24;
-    alpha *= mix(1.0, 0.35, vDepth);
+    float depthDim = mix(1.0, 0.4, vDepth);
+    float alpha = strength * vAlpha * depthDim * 0.85;
 
     gl_FragColor = vec4(color, alpha);
   }
