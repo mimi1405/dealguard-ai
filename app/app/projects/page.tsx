@@ -146,9 +146,10 @@ export default function DealsPage() {
                       </div>
                     )}
                     <div className="flex items-center justify-between pt-2">
-                      <Badge variant="outline" className={getConfidentialityColor(deal.confidentiality_level)}>
-                        {deal.confidentiality_level.toUpperCase()}
+                      {/* <Badge variant="outline" className={getConfidentialityColor(deal.confidentiality_level)}>
+                        {/* {deal.confidentiality_level.toUpperCase()} 
                       </Badge>
+                      */}
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         <span className="text-xs">
