@@ -36,6 +36,7 @@ export default function Home() {
   aria-label="Brain icon preview"
   className="
     mx-auto
+    mb-6
     group relative h-[90px] w-[90px]
     overflow-clip rounded-[24px]
     bg-[#0b0d10]
