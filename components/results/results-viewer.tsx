@@ -129,7 +129,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Category Scores</CardTitle>
+              <CardTitle>Category Scores In Detail</CardTitle>
               <CardDescription>Detailed breakdown by assessment category</CardDescription>
             </CardHeader>
             <CardContent>
