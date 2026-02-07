@@ -75,8 +75,8 @@ const VERTEX_SHADER = `
     float perspective = 60.0 / -mvPosition.z;
     gl_PointSize = clamp(size * perspective, 1.0, 3.0);
 
-    // Low base contribution, subtle activation lift -- prevents filled-blob look
-    vAlpha = aBaseAlpha * 0.18 + aActivation * 0.22;
+    // Moderate base, subtle activation lift -- visible but not filled
+    vAlpha = aBaseAlpha * 0.35 + aActivation * 0.30;
     vActivation = aActivation;
 
     gl_Position = projectionMatrix * mvPosition;
@@ -103,7 +103,7 @@ const FRAGMENT_SHADER = `
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.3);
 
     // No alpha floor -- dim particles stay dim, preventing white-fill accumulation
-    float alpha = strength * vAlpha * 0.08;
+    float alpha = strength * vAlpha * 0.45;
     gl_FragColor = vec4(color, alpha);
   }
 `;
