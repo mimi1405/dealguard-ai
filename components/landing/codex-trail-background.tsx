@@ -4,7 +4,9 @@ import { useRef, useEffect } from "react";
 
 const GLYPHS = "{}[]()<>=;:+-/*._~&|^%#@!?$".split("").concat(["=>", "::", ".."]);
 
-const FADE_ALPHA = 0.06;
+const FADE_ALPHA_ACTIVE = 0.08;
+const FADE_ALPHA_IDLE = 0.16;
+const IDLE_THRESHOLD_MS = 300;
 const EMIT_SPACING = 14;
 const GLYPH_SIZE_MIN = 11;
 const GLYPH_SIZE_MAX = 17;
@@ -43,6 +45,7 @@ export function CodexTrailBackground() {
     const cursor = { x: -9999, y: -9999 };
     const prev = { x: -9999, y: -9999 };
     let hasMoved = false;
+    let lastMoveTime = 0;
 
     const resize = () => {
       const parent = canvas.parentElement;
@@ -78,6 +81,7 @@ export function CodexTrailBackground() {
 
       cursor.x = x;
       cursor.y = y;
+      lastMoveTime = performance.now();
     };
 
     const onPointerLeave = () => {
@@ -95,7 +99,11 @@ export function CodexTrailBackground() {
     let needsEmit = false;
 
     const frame = () => {
-      ctx.fillStyle = `${BG_COLOR}${FADE_ALPHA})`;
+      const idleMs = performance.now() - lastMoveTime;
+      const isIdle = idleMs > IDLE_THRESHOLD_MS;
+      const fadeAlpha = isIdle ? FADE_ALPHA_IDLE : FADE_ALPHA_ACTIVE;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = `${BG_COLOR}${fadeAlpha})`;
       ctx.fillRect(0, 0, w, h);
 
       if (cursor.x > -1000 && prev.x > -1000) {
