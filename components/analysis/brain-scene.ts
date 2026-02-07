@@ -183,13 +183,14 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        uBaseColor: { value: new THREE.Color('#c8cdd3') },
-        uActiveColor: { value: new THREE.Color('#6b9bc3') },
-        uWarmColor: { value: new THREE.Color('#c9a96e') },
+        uBaseColor: { value: new THREE.Color('#8a96a3') },
+        uActiveColor: { value: new THREE.Color('#4a86b8') },
+        uWarmColor: { value: new THREE.Color('#9b7a44') },
       },
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
+      depthTest: true,
     });
 
     particles = new THREE.Points(geometry, material);
