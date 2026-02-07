@@ -70,7 +70,7 @@ const VERTEX_SHADER = `
     vec3 pos = aOriginalPos + offset;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
 
-    float size = (1.2 + aBaseAlpha * 0.8) * uPixelRatio;
+    float size = (0.7 + aBaseAlpha * 0.6) * uPixelRatio;
     float perspective = 60.0 / -mvPosition.z;
     gl_PointSize = clamp(size * perspective, 1.0, 2.6);
 
