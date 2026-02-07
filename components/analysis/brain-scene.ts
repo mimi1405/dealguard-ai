@@ -70,13 +70,11 @@ const VERTEX_SHADER = `
     vec3 pos = aOriginalPos + offset;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
 
-    // Smaller base size + gentle perspective; clamped to keep points crisp
-    float size = (0.6 + aBaseAlpha * 0.4) * uPixelRatio;
+    float size = (1.2 + aBaseAlpha * 0.8) * uPixelRatio;
     float perspective = 60.0 / -mvPosition.z;
-    gl_PointSize = clamp(size * perspective, 1.0, 3.0);
+    gl_PointSize = clamp(size * perspective, 1.5, 5.0);
 
-    // Moderate base, subtle activation lift -- visible but not filled
-    vAlpha = aBaseAlpha * 0.7 + aActivation * 0.7;
+    vAlpha = 0.3 + aBaseAlpha * 0.5 + aActivation * 0.4;
     vActivation = aActivation;
 
     gl_Position = projectionMatrix * mvPosition;
@@ -96,14 +94,12 @@ const FRAGMENT_SHADER = `
     if (dist > 0.5) discard;
 
     float strength = 1.0 - smoothstep(0.0, 0.5, dist);
-    // Steep falloff produces hard-edged dots instead of soft glowing halos
-    strength = pow(strength, 2.4);
+    strength = pow(strength, 1.6);
 
     vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.6, vActivation));
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.3);
 
-    // No alpha floor -- dim particles stay dim, preventing white-fill accumulation
-    float alpha = strength * vAlpha * 0.8;
+    float alpha = strength * vAlpha * 0.9;
     gl_FragColor = vec4(color, alpha);
   }
 `;
