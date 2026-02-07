@@ -57,9 +57,6 @@ const VERTEX_SHADER = `
     vec4 m = max(0.6 - vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)), 0.0);
     m = m * m;
     return 42.0 * dot(m*m, vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
-
-    varying float vDepth;
-    vDepth = clamp((-mvPosition.z - 2.0) / 2.0, 0.0, 1.0);
   }
 
   void main() {
@@ -73,11 +70,11 @@ const VERTEX_SHADER = `
     vec3 pos = aOriginalPos + offset;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
 
-    float size = (0.7 + aBaseAlpha * 0.6) * uPixelRatio;
-    float perspective = 60.0 / -mvPosition.z;
-    gl_PointSize = clamp(size * perspective, 1.0, 2.6);
+    
+    float size = (1.2 + aBaseAlpha * 0.8) * uPixelRatio;
+    gl_PointSize = size * (200.0 / -mvPosition.z);
 
-    vAlpha = aBaseAlpha * 0.18 + aActivation * 0.22;
+    vAlpha = aBaseAlpha * 0.35 + aActivation * 0.65;
     vActivation = aActivation;
 
     gl_Position = projectionMatrix * mvPosition;
@@ -95,17 +92,14 @@ const FRAGMENT_SHADER = `
   void main() {
     float dist = length(gl_PointCoord - vec2(0.5));
     if (dist > 0.5) discard;
-
     float strength = 1.0 - smoothstep(0.0, 0.5, dist);
-    strength = pow(strength, 1.6);
+    strength = pow(strength, 1.5);
 
     vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.6, vActivation));
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.3);
 
-    float alpha = strength * vAlpha * 0.12;
+    float alpha = strength * max(vAlpha, 0.08);
     gl_FragColor = vec4(color, alpha);
-
-    alpha *= mix(1.0, 0.35, vDepth);
   }
 `;
 
@@ -115,6 +109,7 @@ export interface BrainScene {
   setReducedMotion: (reduced: boolean) => void;
 }
 
+// Three.js is loaded dynamically at mount time to avoid SSR resolution issues.
 export function createBrainScene(particleCount: number = 20000): BrainScene {
   let renderer: any = null;
   let scene: any = null;
@@ -175,18 +170,13 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        // Darker muted base -- far from white so additive blending can't blow out
-        uBaseColor: { value: new THREE.Color('#8a96a3') },
-        // Subtle steel-blue activation highlight
-        uActiveColor: { value: new THREE.Color('#4a86b8') },
-        // Faint warm accent, only visible at peak activation
-        uWarmColor: { value: new THREE.Color('#9b7a44') },
+        uBaseColor: { value: new THREE.Color('#c8cdd3') },
+        uActiveColor: { value: new THREE.Color('#6b9bc3') },
+        uWarmColor: { value: new THREE.Color('#c9a96e') },
       },
       transparent: true,
       depthWrite: false,
-      depthTest: true,
-      // NormalBlending avoids additive brightness stacking that causes the white blob
-      blending: THREE.NormalBlending,
+      blending: THREE.AdditiveBlending,
     });
 
     particles = new THREE.Points(geometry, material);
