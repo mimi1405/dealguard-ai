@@ -95,7 +95,7 @@ export default function Home() {
 
       <footer className="border-t border-border py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-muted-foreground">
-          <p>&copy; {now()} scoraxAI. All rights reserved.</p>
+          <p>&copy; {<p>{new Date().getFullYear()}</p>} scoraxAI. All rights reserved.</p>
         </div>
       </footer>
     </div>
