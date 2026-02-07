@@ -78,7 +78,7 @@ const VERTEX_SHADER = `
     gl_PointSize = clamp(size * perspective, 1.0, 2.6);
 
     // Subtle alpha mix => no permanent "filled" look
-    vAlpha = aBaseAlpha * 0.18 + aActivation * 0.22;
+    vAlpha = aBaseAlpha * 0.28 + aActivation * 0.22;
     vActivation = aActivation;
 
     // Depth factor for 3D layering (farther points dimmer)
