@@ -294,13 +294,7 @@ export function CodexTrailBackground() {
         ctx.shadowBlur = rand(GLOW_BLUR_MIN, GLOW_BLUR_MAX);
         ctx.shadowColor = `rgba(255,255,255,${GLOW_ALPHA})`;
         ctx.fillStyle = "rgba(255,255,255,1)";
-        ctx.fillText(p.glyph, 0, 0);
-
-        // Soft pass
-        ctx.globalAlpha = alpha * 0.35;
-        ctx.shadowBlur = 0;
-        ctx.filter = "blur(2px)";
-        ctx.fillText(p.glyph, 0, 0);
+        ctx.fillText(p.glyph, 0, 0);        
 
         ctx.restore();
         ctx.filter = "none";
