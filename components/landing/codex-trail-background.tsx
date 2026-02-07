@@ -97,14 +97,32 @@ export function CodexTrailBackground() {
     parentEl.addEventListener("pointerleave", onPointerLeave);
 
     let needsEmit = false;
+    let debugMode = false;
+    let frameCount = 0;
+    let lastFpsTime = performance.now();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "d" || e.key === "D") {
+        debugMode = !debugMode;
+        if (debugMode) console.log("[CodexTrail] debug ON");
+        else console.log("[CodexTrail] debug OFF");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
 
     const frame = () => {
-      const idleMs = performance.now() - lastMoveTime;
+      const now = performance.now();
+      const idleMs = now - lastMoveTime;
       const isIdle = idleMs > IDLE_THRESHOLD_MS;
       const fadeAlpha = isIdle ? FADE_ALPHA_IDLE : FADE_ALPHA_ACTIVE;
+
+      ctx.save();
       ctx.globalCompositeOperation = "source-over";
-      ctx.fillStyle = `${BG_COLOR}${fadeAlpha})`;
+      ctx.globalAlpha = 1;
+      ctx.filter = "none";
+      ctx.fillStyle = `rgba(11,13,16,${fadeAlpha})`;
       ctx.fillRect(0, 0, w, h);
+      ctx.restore();
 
       if (cursor.x > -1000 && prev.x > -1000) {
         const dx = cursor.x - prev.x;
@@ -126,6 +144,9 @@ export function CodexTrailBackground() {
             const rotation = (Math.random() - 0.5) * 0.5;
 
             ctx.save();
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = 1;
+            ctx.filter = "none";
             ctx.translate(gx, gy);
             ctx.rotate(rotation);
             ctx.font = `${size}px ${FONT}`;
@@ -151,6 +172,15 @@ export function CodexTrailBackground() {
         prev.y = cursor.y;
       }
 
+      if (debugMode) {
+        frameCount++;
+        if (now - lastFpsTime >= 1000) {
+          console.log(`[CodexTrail] fps=${frameCount} fadeAlpha=${fadeAlpha.toFixed(3)} idle=${isIdle}`);
+          frameCount = 0;
+          lastFpsTime = now;
+        }
+      }
+
       raf = requestAnimationFrame(frame);
     };
 
@@ -168,6 +198,7 @@ export function CodexTrailBackground() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("keydown", onKeyDown);
       parentEl.removeEventListener("pointermove", onPointerMove);
       parentEl.removeEventListener("pointerleave", onPointerLeave);
       mql.removeEventListener("change", onMotionChange);
