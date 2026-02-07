@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-type HoverVideoIconProps = {
+type HoverPlayOnceIconProps = {
   src: string;
   poster: string;
   label?: string;
@@ -10,43 +10,58 @@ type HoverVideoIconProps = {
   className?: string;
 };
 
-export function HoverVideoIcon({
+export function HoverPlayOnceIcon({
   src,
   poster,
   label = "App icon preview",
   size = 90,
   className,
-}: HoverVideoIconProps) {
+}: HoverPlayOnceIconProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const play = async () => {
-  const v = videoRef.current;
-  if (!v) return;
-  try {
-    v.currentTime = 0;
-    await v.play();
-    setIsPlaying(true);
-  } catch {}
-};
-
-  const stop = () => {
+  const startFromBeginning = async () => {
     const v = videoRef.current;
     if (!v) return;
-    v.pause();
-    v.currentTime = 0;
-    setIsPlaying(false);
+
+    // If already playing, don't restart
+    if (!v.paused && !v.ended) return;
+
+    try {
+      v.currentTime = 0;
+      await v.play();
+      setIsPlaying(true);
+    } catch {
+      // ignore autoplay restrictions (should be ok because muted)
+    }
   };
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => setIsPlaying(false); // stays on last frame visually
+
+    v.addEventListener("play", onPlay);
+    v.addEventListener("pause", onPause);
+    v.addEventListener("ended", onEnded);
+
+    return () => {
+      v.removeEventListener("play", onPlay);
+      v.removeEventListener("pause", onPause);
+      v.removeEventListener("ended", onEnded);
+    };
+  }, []);
 
   return (
     <div
       role="button"
       tabIndex={0}
       aria-label={label}
-      onPointerEnter={play}
-      onPointerLeave={stop}
-      onFocus={play}
-      onBlur={stop}
+      onPointerEnter={startFromBeginning}
+      onFocus={startFromBeginning}
       className={[
         "group relative overflow-clip rounded-[24px] bg-[#0b0d10]",
         "ring-1 ring-white/10",
@@ -58,7 +73,7 @@ export function HoverVideoIcon({
       ].join(" ")}
       style={{ width: size, height: size }}
     >
-      {/* subtle hover glow */}
+      {/* subtle hover glow (optional – you can tie to isPlaying if you want) */}
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.10),transparent_60%)]" />
       </div>
@@ -72,14 +87,14 @@ export function HoverVideoIcon({
         ].join(" ")}
         playsInline
         muted
-        loop={false}          // important: Codex-like “preview”, not infinite
-        preload="metadata"    // fast poster, minimal network
+        loop={false}         // ✅ play once
+        preload="metadata"
         poster={poster}
       >
         <source src={src} type="video/mp4" />
       </video>
 
-      {/* optional gloss highlight */}
+      {/* optional gloss */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-6 left-0 right-0 h-10 bg-white/5 blur-xl opacity-60" />
       </div>
