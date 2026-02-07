@@ -48,7 +48,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col h-full">
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
-          <Image src="/66e949b2-3aeb-43f5-93c0-0b73f417fed9.png" alt="Dealguard AI" width={40} height={40} />
           <span className="text-xl font-bold">Dealguard AI</span>
         </div>
       </div>
