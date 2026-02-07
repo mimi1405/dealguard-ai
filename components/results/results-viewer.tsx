@@ -108,7 +108,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
   if (analysisRunning || loading) {
     return (
       <div className="flex flex-col items-center justify-center">
-        <div className="w-full aspect-square rounded-2xl overflow-hidden border border-white/[0.04]">
+        <div className="w-full aspect-square overflow-hidden border border-white/[0.04]">
           <BrainAnimation particleCount={20000} className="rounded-2xl" />
         </div>
         <p className="mt-6 text-xl text-muted-foreground tracking-wide animate-pulse">
