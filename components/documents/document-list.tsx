@@ -115,7 +115,7 @@ export function DocumentList({ dealId, refresh }: DocumentListProps) {
             <FileText className="h-10 w-10 text-primary flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">
-                {doc.title || doc.original_filename}
+                {doc.original_filename}
               </p>
               <div className="flex items-center gap-3 mt-1 flex-wrap">
                 <span className="text-sm text-muted-foreground">
@@ -125,11 +125,6 @@ export function DocumentList({ dealId, refresh }: DocumentListProps) {
                   {(doc.size_bytes / 1024 / 1024).toFixed(2)} MB
                 </span>
                 {getStatusBadge(doc.status)}
-                {doc.extracted_text_id && (
-                  <Badge variant="outline" className="text-xs">
-                    Text Extracted
-                  </Badge>
-                )}
               </div>
             </div>
           </div>

@@ -77,7 +77,6 @@ export interface Document {
   created_at: string;
   deal_id: string;
   doc_type: DocumentType;
-  title: string | null;
   original_filename: string;
   storage_bucket: string;
   storage_path: string;
@@ -85,8 +84,6 @@ export interface Document {
   size_bytes: number;
   sha256: string | null;
   status: DocumentStatus;
-  extracted_text_id: string | null;
-  workspace_id: string | null;
 }
 
 export interface ExtractedText {

@@ -137,7 +137,6 @@ export function DocumentUpload({ dealId, onUploadComplete }: DocumentUploadProps
         id: documentId,
         deal_id: dealId,
         doc_type: mapCategoryToDocType(category),
-        title: null,
         original_filename: file.name,
         storage_bucket: "dealguard-docs",
         storage_path: storagePath,
