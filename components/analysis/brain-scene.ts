@@ -112,7 +112,7 @@ const FRAGMENT_SHADER = `
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.25);
 
     // IMPORTANT: remove alpha floor, use global dimmer, add depth fade
-    float alpha = strength * vAlpha * 0.22;
+    float alpha = strength * vAlpha * 0.24;
     alpha *= mix(1.0, 0.35, vDepth);
 
     gl_FragColor = vec4(color, alpha);
