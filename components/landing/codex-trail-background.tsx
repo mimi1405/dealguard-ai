@@ -4,16 +4,17 @@ import { useRef, useEffect } from "react";
 
 const GLYPHS = "{}[]()<>=;:+-/*._~&|^%#@!?$".split("").concat(["=>", "::", ".."]);
 
-const FADE_ALPHA_ACTIVE = 0.08;
-const FADE_ALPHA_IDLE = 0.16;
-const IDLE_THRESHOLD_MS = 300;
+const FADE_ALPHA_ACTIVE = 0.14;
+const FADE_ALPHA_IDLE = 0.28;
+const IDLE_THRESHOLD_MS = 140;
+const IDLE_CLEAN_MS = 2000;
 const EMIT_SPACING = 14;
 const GLYPH_SIZE_MIN = 11;
 const GLYPH_SIZE_MAX = 17;
 const SHADOW_BLUR = 10;
 const SHADOW_ALPHA = 0.12;
 const MIN_SPEED_SQ = 4;
-const BG_COLOR = "rgba(11,13,16,";
+const BG_COLOR = "#0b0d10";
 const FONT = "'SF Mono','Fira Code','Cascadia Code','JetBrains Mono',monospace";
 
 function pick<T>(arr: T[]): T {
@@ -118,9 +119,13 @@ export function CodexTrailBackground() {
 
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 1;
       ctx.filter = "none";
-      ctx.fillStyle = `rgba(11,13,16,${fadeAlpha})`;
+      if (idleMs > IDLE_CLEAN_MS) {
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.globalAlpha = fadeAlpha;
+      }
+      ctx.fillStyle = BG_COLOR;
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
 
@@ -140,7 +145,7 @@ export function CodexTrailBackground() {
             const gy = lerp(prev.y, cursor.y, t) + (Math.random() - 0.5) * 8;
             const size = GLYPH_SIZE_MIN + Math.random() * (GLYPH_SIZE_MAX - GLYPH_SIZE_MIN);
             const glyph = pick(GLYPHS);
-            const alpha = 0.08 + Math.random() * 0.1;
+            const alpha = 0.06 + Math.random() * 0.07;
             const rotation = (Math.random() - 0.5) * 0.5;
 
             ctx.save();
@@ -157,8 +162,8 @@ export function CodexTrailBackground() {
             ctx.fillStyle = `rgba(255,255,255,${alpha})`;
             ctx.fillText(glyph, 0, 0);
             ctx.shadowBlur = 0;
-            ctx.globalAlpha = alpha * 0.4;
-            ctx.filter = "blur(3px)";
+            ctx.globalAlpha = alpha * 0.22;
+            ctx.filter = "blur(2px)";
             ctx.fillText(glyph, 0, 0);
             ctx.restore();
           }
