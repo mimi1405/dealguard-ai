@@ -11,7 +11,7 @@ export default function Home() {
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-2">
               <Shield className="h-8 w-8 text-white/70" />
-              <span className="text-xl font-bold">Dealguard AI</span>
+              <span className="text-xl font-bold">scoraxAI</span>
             </div>
             <div className="flex gap-4">
               <Button variant="ghost" asChild>
