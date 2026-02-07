@@ -78,16 +78,18 @@ const VERTEX_SHADER = `
 
     float r = length(aOriginalPos * vec3(1.0, 1.33, 1.18));
     float coreWeight = smoothstep(1.0, 0.3, r);
-    float edgeFade = smoothstep(1.08, 0.83, r);
+    // Edge preservation: fade starts later (0.88 vs 0.83) to retain silhouette boundary
+    float edgeFade = smoothstep(1.1, 0.88, r);
 
     vAlpha = aBaseAlpha * 0.76 * mix(0.44, 1.0, coreWeight) * edgeFade;
 
-    // Center-weighted perceptual bias: gently lift alpha near brain center
+    // Center-weighted perceptual bias: edges ~0.9x, center ~1.3x
+    // Creates a noticeable density gradient that helps the brain read instantly
     float centerR = length(aOriginalPos);
     float centerBias = smoothstep(0.9, 0.2, centerR);
-    vAlpha *= mix(1.0, 1.1, centerBias);
+    vAlpha *= mix(0.9, 1.3, centerBias);
 
-    vAlpha += aActivation * 0.35;
+    vAlpha += aActivation * 0.4;
 
     vActivation = aActivation;
     vEdge = 1.0 - edgeFade;
@@ -116,14 +118,14 @@ const FRAGMENT_SHADER = `
     float strength = 1.0 - smoothstep(0.0, 0.5, dist);
     strength = pow(strength, 2.0);
 
-    // Activation contrast: pow curve expands mid-range for better hotspot visibility
-    float actCurve = pow(vActivation, 0.7);
+    // Activation contrast: pow(0.6) expands mid-range for clearer hotspot form
+    float actCurve = pow(vActivation, 0.6);
     vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.4, actCurve));
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, actCurve) * 0.25);
 
     float depthDim = mix(1.0, 0.35, vDepth);
-    // Subtle global visibility lift (~10%)
-    float alpha = strength * vAlpha * depthDim * 1.1;
+    // Global visibility lift (1.25x) — scene no longer relies on barely-visible values
+    float alpha = strength * vAlpha * depthDim * 1.25;
 
     gl_FragColor = vec4(color, alpha);
   }
