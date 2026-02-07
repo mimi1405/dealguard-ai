@@ -72,7 +72,7 @@ const VERTEX_SHADER = `
 
     float size = (1.2 + aBaseAlpha * 0.8) * uPixelRatio;
     float perspective = 60.0 / -mvPosition.z;
-    gl_PointSize = clamp(size * perspective, 1.5, 5.0);
+    gl_PointSize = clamp(size * perspective, 1.0, 2.6);
 
     vAlpha = aBaseAlpha * 0.18 + aActivation * 0.22;
     vActivation = aActivation;
