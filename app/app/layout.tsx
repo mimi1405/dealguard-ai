@@ -48,7 +48,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col h-full">
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-3">
-          <span className="text-xl font-bold">Dealguard AI</span>
+          <span className="text-xl font-bold">scoraxAI</span>
         </div>
       </div>
 
