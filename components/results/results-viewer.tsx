@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { DealScore, CanonicalFact, Fact, SCORE_GRADE_LABELS } from '@/lib/types/database';
+import { BrainAnimation } from '@/components/analysis/brain-animation';
 
 interface CategoryScoreRow {
   deal_id: string;
@@ -34,6 +35,9 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
   const [categoryScoreRows, setCategoryScoreRows] = useState<CategoryScoreRow[]>([]);
   const [canonicalFacts, setCanonicalFacts] = useState<CanonicalFact[]>([]);
   const [rawFacts, setRawFacts] = useState<Fact[]>([]);
+  // TODO: For production, replace `true` with actual analysis-running state.
+  // Set to `true` now so the brain animation is always visible for inspection.
+  const [analysisRunning] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -101,10 +105,15 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
     }
   };
 
-  if (loading) {
+  if (analysisRunning || loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Loading results...</div>
+      <div className="flex flex-col items-center justify-center">
+        <div className="w-full max-w-2xl aspect-square rounded-2xl overflow-hidden border border-white/[0.04]">
+          <BrainAnimation particleCount={20000} className="rounded-2xl" />
+        </div>
+        <p className="mt-6 text-sm text-muted-foreground tracking-wide animate-pulse">
+          Analyzing documents...
+        </p>
       </div>
     );
   }
