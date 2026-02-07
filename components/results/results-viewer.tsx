@@ -37,7 +37,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
   const [rawFacts, setRawFacts] = useState<Fact[]>([]);
   // TODO: For production, replace `true` with actual analysis-running state.
   // Set to `true` now so the brain animation is always visible for inspection.
-  const [analysisRunning] = useState(true);
+  const [analysisRunning] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
