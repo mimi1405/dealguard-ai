@@ -30,7 +30,7 @@ export default function Home() {
           <CodexTrailBackground />
           <div className="relative z-10 max-w-7xl mx-auto">
             <div className="text-center max-w-3xl mx-auto">
-              <div className="w-20">hello</div>
+              <div className="w-20 z-20">hello</div>
               <h1 className="text-8xl font-bold mb-6 bg-gradient-to-r from-white via-white/60 to-white bg-clip-text text-transparent">
                 scoraxAI
               </h1>
