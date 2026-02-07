@@ -104,7 +104,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="lg:hidden border-b border-border p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Image src="/66e949b2-3aeb-43f5-93c0-0b73f417fed9.png" alt="Dealguard AI" width={32} height={32} />
               <span className="font-bold">scoraxAI</span>
             </div>
             <Sheet>
