@@ -37,7 +37,7 @@ export default function Home() {
   className="
     mx-auto
     mb-6
-    group relative h-[90px] w-[90px]
+    group relative h-[120px] w-[120px]
     overflow-clip rounded-[24px]
     bg-[#0b0d10]
     ring-1 ring-white/10
