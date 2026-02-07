@@ -46,7 +46,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <Image src="/66e949b2-3aeb-43f5-93c0-0b73f417fed9.png" alt="Dealguard AI" width={48} height={48} />
+          <Image src="/66e949b2-3aeb-43f5-93c0-0b73f417fed9.png" alt="scoraxAI" width={48} height={48} />
           <span className="text-2xl font-bold">scoraxAI</span>
         </div>
 
