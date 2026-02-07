@@ -213,7 +213,7 @@ export default function NewDealPage() {
                   <SelectContent>
                     {CONFIDENTIALITY_LEVELS.map((level) => (
                       <SelectItem key={level} value={level}>
-                        {level.toUpperCase()}
+                        {level}
                       </SelectItem>
                     ))}
                   </SelectContent>
