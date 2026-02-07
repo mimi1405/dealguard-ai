@@ -9,7 +9,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-2">
-              <Shield className="h-8 w-8 text-primary" />
+              <Shield className="h-8 w-8 text-white/70" />
               <span className="text-xl font-bold">Dealguard AI</span>
             </div>
             <div className="flex gap-4">
@@ -28,7 +28,7 @@ export default function Home() {
         <section className="py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center max-w-3xl mx-auto">
-              <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white via-white/60 to-white bg-clip-text text-transparent">
                 AI-Driven Due Diligence
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
@@ -55,7 +55,7 @@ export default function Home() {
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="p-6 border border-border rounded-lg bg-card">
-                <Brain className="h-12 w-12 text-accent mb-4" />
+                <Brain className="h-12 w-12 text-white/70 mb-4" />
                 <h3 className="text-xl font-semibold mb-3">AI-Powered Insights</h3>
                 <p className="text-muted-foreground">
                   Get comprehensive analysis powered by advanced AI. Identify
@@ -64,7 +64,7 @@ export default function Home() {
               </div>
 
               <div className="p-6 border border-border rounded-lg bg-card">
-                <CheckCircle className="h-12 w-12 text-accent mb-4" />
+                <CheckCircle className="h-12 w-12 text-white/70 mb-4" />
                 <h3 className="text-xl font-semibold mb-3">Structured Process</h3>
                 <p className="text-muted-foreground">
                   Follow a proven due diligence workflow. From project setup to

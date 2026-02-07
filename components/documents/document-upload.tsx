@@ -194,7 +194,7 @@ export function DocumentUpload({ dealId, onUploadComplete }: DocumentUploadProps
       <div className="space-y-4">
         <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            dragActive ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+            dragActive ? "border-white/40 bg-white/5" : "border-border hover:border-white/20"
           } ${uploading ? "opacity-50 pointer-events-none" : ""}`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -233,7 +233,7 @@ export function DocumentUpload({ dealId, onUploadComplete }: DocumentUploadProps
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-primary" />
+                <FileText className="h-5 w-5 text-white/70" />
                 <div>
                   <p className="font-medium">{file.name}</p>
                   <p className="text-sm text-muted-foreground">

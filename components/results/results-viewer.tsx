@@ -93,7 +93,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
       case 'a':
         return 'bg-green-500/10 text-green-500 border-green-500';
       case 'b':
-        return 'bg-blue-500/10 text-blue-500 border-blue-500';
+        return 'bg-white/15 text-white/80 border-white/20';
       case 'c':
         return 'bg-yellow-500/10 text-yellow-500 border-yellow-500';
       case 'd':

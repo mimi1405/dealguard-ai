@@ -70,7 +70,7 @@ export function DocumentList({ dealId, refresh }: DocumentListProps) {
         );
       case 'extracting':
         return (
-          <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+          <Badge variant="outline" className="bg-white/10 text-white/70 border-white/10">
             <Clock className="h-3 w-3 mr-1 animate-pulse" />
             {DOCUMENT_STATUS_LABELS[status as keyof typeof DOCUMENT_STATUS_LABELS] || status}
           </Badge>
@@ -109,10 +109,10 @@ export function DocumentList({ dealId, refresh }: DocumentListProps) {
       {documents.map((doc) => (
         <div
           key={doc.id}
-          className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-primary/50 transition-colors"
+          className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-white/20 transition-colors"
         >
           <div className="flex items-center gap-4 flex-1">
-            <FileText className="h-10 w-10 text-primary flex-shrink-0" />
+            <FileText className="h-10 w-10 text-white/70 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">
                 {doc.original_filename}

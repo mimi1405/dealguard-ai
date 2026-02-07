@@ -94,7 +94,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'running':
-        return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />;
+        return <RefreshCw className="h-4 w-4 text-white/70 animate-spin" />;
       case 'failed':
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
@@ -107,7 +107,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
       case 'completed':
         return 'bg-green-500/10 text-green-500 border-green-500/20';
       case 'running':
-        return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+        return 'bg-white/10 text-white/70 border-white/10';
       case 'failed':
         return 'bg-red-500/10 text-red-500 border-red-500/20';
       default:

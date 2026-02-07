@@ -76,7 +76,7 @@ export default function DealDetailPage() {
       case 'completed':
         return 'bg-green-500/10 text-green-500';
       case 'running':
-        return 'bg-blue-500/10 text-blue-500';
+        return 'bg-white/10 text-white/70';
       case 'failed':
         return 'bg-red-500/10 text-red-500';
       default:

@@ -72,7 +72,7 @@ export function AnalysisViewer({ projectId }: AnalysisViewerProps) {
   const getStatusBadge = () => {
     const variants: Record<string, { className: string; label: string }> = {
       not_started: { className: 'bg-muted', label: 'Not Started' },
-      running: { className: 'bg-blue-500', label: 'Running' },
+      running: { className: 'bg-white/20 text-white', label: 'Running' },
       completed: { className: 'bg-green-500', label: 'Completed' },
       failed: { className: 'bg-destructive', label: 'Failed' },
     };
@@ -113,7 +113,7 @@ export function AnalysisViewer({ projectId }: AnalysisViewerProps) {
 
           {status === 'running' && (
             <div className="text-center py-8">
-              <RefreshCw className="mx-auto h-12 w-12 text-primary animate-spin mb-4" />
+              <RefreshCw className="mx-auto h-12 w-12 text-white/70 animate-spin mb-4" />
               <p className="text-lg font-medium mb-2">Analysis in Progress</p>
               <p className="text-muted-foreground">
                 AI is analyzing your documents. This may take a few minutes...
