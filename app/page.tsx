@@ -31,6 +31,7 @@ export default function Home() {
           <CodexTrailBackground />
               <HoverVideoIcon
                 src="https://fcwdgsfspejqfyjmazvk.supabase.co/storage/v1/object/public/web_data/final.mp4" poster="/brain-poster.png"/>
+        </section>
               <h1 className="text-8xl font-bold mb-6 bg-gradient-to-r from-white via-white/60 to-white bg-clip-text text-transparent">
                 scoraxAI
               </h1>
