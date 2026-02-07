@@ -35,7 +35,7 @@ export default function Home() {
   tabIndex={0}
   aria-label="Brain icon preview"
   className="
-    justify-center
+    mx-auto
     group relative h-[90px] w-[90px]
     overflow-clip rounded-[24px]
     bg-[#0b0d10]
