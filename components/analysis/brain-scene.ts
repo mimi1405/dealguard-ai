@@ -76,7 +76,7 @@ const VERTEX_SHADER = `
     gl_PointSize = clamp(size * perspective, 1.0, 3.0);
 
     // Moderate base, subtle activation lift -- visible but not filled
-    vAlpha = aBaseAlpha * 0.35 + aActivation * 0.30;
+    vAlpha = aBaseAlpha * 0.7 + aActivation * 0.7;
     vActivation = aActivation;
 
     gl_Position = projectionMatrix * mvPosition;
