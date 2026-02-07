@@ -4,11 +4,25 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
+import { AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { DealScore, CanonicalFact, Fact, SCORE_GRADE_LABELS } from '@/lib/types/database';
+
+interface CategoryScoreRow {
+  deal_id: string;
+  category_id: number;
+  score: string;
+  rationale: string;
+  strengths: string[];
+  risks: string[];
+  created_at: string;
+  categories: {
+    title: string;
+    key: string;
+    sort_order: number;
+  };
+}
 
 interface ResultsViewerProps {
   dealId: string;
@@ -17,6 +31,7 @@ interface ResultsViewerProps {
 export function ResultsViewer({ dealId }: ResultsViewerProps) {
   const supabase = createClient();
   const [latestScore, setLatestScore] = useState<DealScore | null>(null);
+  const [categoryScoreRows, setCategoryScoreRows] = useState<CategoryScoreRow[]>([]);
   const [canonicalFacts, setCanonicalFacts] = useState<CanonicalFact[]>([]);
   const [rawFacts, setRawFacts] = useState<Fact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +51,16 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
         .maybeSingle();
 
       setLatestScore(scoreData);
+
+      const { data: catScores } = await supabase
+        .from('category_scores')
+        .select('*, categories(title, key, sort_order)')
+        .eq('deal_id', dealId);
+
+      const sorted = (catScores || []).sort(
+        (a: any, b: any) => (a.categories?.sort_order ?? 0) - (b.categories?.sort_order ?? 0)
+      );
+      setCategoryScoreRows(sorted as CategoryScoreRow[]);
 
       const { data: canonicalData } = await supabase
         .from('canonical_facts')
@@ -118,7 +143,9 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
                     <span className="text-sm font-medium">Overall Score</span>
                     <span className="text-2xl font-bold">{latestScore.overall_score}/100</span>
                   </div>
-                  <Progress value={latestScore.overall_score} className="h-3" />
+                  <div className="relative h-3 w-full overflow-hidden rounded-full bg-secondary">
+                    <div className="h-full bg-primary transition-all duration-300" style={{ width: `${latestScore.overall_score}%` }} />
+                  </div>
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {SCORE_GRADE_LABELS[latestScore.grade]}
@@ -127,57 +154,60 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Category Scores In Detail</CardTitle>
-              <CardDescription>Detailed breakdown by assessment category</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {latestScore.category_scores.map((cat, idx) => (
-                  <div key={idx} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">{cat.category}</h4>
-                      <span className="text-lg font-bold">{cat.score}/100</span>
-                    </div>
-                    <Progress value={cat.score} className="h-2" />
-                    <p>{cat.rationale}</p>
-                    {cat.summary && (
-                      <p className="text-sm text-muted-foreground">{cat.summary}</p>
-                    )}
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
-                      {cat.key_strengths && cat.key_strengths.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-green-600 font-medium">
-                            <CheckCircle className="h-4 w-4" />
-                            Strengths
-                          </div>
-                          <ul className="list-disc list-inside space-y-1">
-                            {cat.key_strengths.map((strength, i) => (
-                              <li key={i} className="text-muted-foreground">{strength}</li>
-                            ))}
-                          </ul>
-                        </div>
+          {categoryScoreRows.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Category Scores In Detail</CardTitle>
+                <CardDescription>Detailed breakdown by assessment category</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {categoryScoreRows.map((row) => (
+                    <div key={row.category_id} className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold">{row.categories.title}</h4>
+                        <span className="text-lg font-bold">{parseFloat(row.score).toFixed(0)}/100</span>
+                      </div>
+                      <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
+                        <div className="h-full bg-primary transition-all duration-300" style={{ width: `${parseFloat(row.score)}%` }} />
+                      </div>
+                      {row.rationale && (
+                        <p className="text-sm text-muted-foreground">{row.rationale}</p>
                       )}
-                      {cat.key_risks && cat.key_risks.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-red-600 font-medium">
-                            <AlertTriangle className="h-4 w-4" />
-                            Risks
+                      <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        {row.strengths && row.strengths.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-green-600 font-medium">
+                              <CheckCircle className="h-4 w-4" />
+                              Strengths
+                            </div>
+                            <ul className="list-disc list-inside space-y-1">
+                              {row.strengths.map((strength, i) => (
+                                <li key={i} className="text-muted-foreground">{strength}</li>
+                              ))}
+                            </ul>
                           </div>
-                          <ul className="list-disc list-inside space-y-1">
-                            {cat.key_risks.map((risk, i) => (
-                              <li key={i} className="text-muted-foreground">{risk}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                        )}
+                        {row.risks && row.risks.length > 0 && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-red-600 font-medium">
+                              <AlertTriangle className="h-4 w-4" />
+                              Risks
+                            </div>
+                            <ul className="list-disc list-inside space-y-1">
+                              {row.risks.map((risk, i) => (
+                                <li key={i} className="text-muted-foreground">{risk}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 
