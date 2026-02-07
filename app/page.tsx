@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Shield, Brain, CheckCircle } from "lucide-react";
+import { CursorFieldBackground } from "@/components/landing/cursor-field-background";
 
 export default function Home() {
   return (
@@ -25,8 +26,9 @@ export default function Home() {
       </nav>
 
       <main>
-        <section className="min-h-[100vh] flex items-center justify-center px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
+        <section className="relative min-h-[100vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
+          <CursorFieldBackground />
+          <div className="relative z-10 max-w-7xl mx-auto">
             <div className="text-center max-w-3xl mx-auto">
               <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white via-white/60 to-white bg-clip-text text-transparent">
                 AI-Driven Due Diligence
