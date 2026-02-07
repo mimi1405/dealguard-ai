@@ -14,7 +14,7 @@ const EMIT_RADIUS_MAX = 38;
 const EMIT_COUNT_MIN = 6;
 const EMIT_COUNT_MAX = 14;
 
-const MAX_PARTICLES = 100;
+const MAX_PARTICLES = 200;
 
 const LIFE_MIN = 900;
 const LIFE_MAX = 1400;
