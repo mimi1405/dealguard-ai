@@ -21,18 +21,14 @@ export function HoverVideoIcon({
   const [isPlaying, setIsPlaying] = useState(false);
 
   const play = async () => {
-    const v = videoRef.current;
-    if (!v) return;
-    try {
-      // ensure it starts from beginning for consistent UX
-      v.currentTime = 0;
-      await v.play();
-      setIsPlaying(true);
-    } catch {
-      // autoplay policies can still block in some cases
-      setIsPlaying(false);
-    }
-  };
+  const v = videoRef.current;
+  if (!v) return;
+  try {
+    v.currentTime = 0;
+    await v.play();
+    setIsPlaying(true);
+  } catch {}
+};
 
   const stop = () => {
     const v = videoRef.current;
