@@ -141,7 +141,8 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
                       <span className="text-lg font-bold">{cat.score}/100</span>
                     </div>
                     <Progress value={cat.score} className="h-2" />
-                    {cat.rationale && (
+                    <p>{{cat.rationale}}</p>
+                    {cat.summary && (
                       <p className="text-sm text-muted-foreground">{cat.summary}</p>
                     )}
                     <div className="grid md:grid-cols-2 gap-4 text-sm">
