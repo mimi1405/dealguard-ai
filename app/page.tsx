@@ -30,7 +30,45 @@ export default function Home() {
           <CodexTrailBackground />
           <div className="relative z-10 max-w-7xl mx-auto">
             <div className="text-center max-w-3xl mx-auto">
-              <div className="w-20 z-20">hello</div>
+              <div
+  role="button"
+  tabIndex={0}
+  aria-label="Brain icon preview"
+  className="
+    group relative h-[90px] w-[90px]
+    overflow-clip rounded-[24px]
+    bg-[#0b0d10]
+    ring-1 ring-white/10
+    shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_10px_30px_rgba(0,0,0,0.65)]
+    transition duration-200
+    hover:ring-white/20
+    hover:shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_14px_40px_rgba(0,0,0,0.75)]
+    focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30
+  "
+>
+  {/* subtle hover glow */}
+  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.10),transparent_60%)]" />
+  </div>
+
+  {/* your looping video */}
+  <video
+    className="h-full w-full object-cover scale-[1.12] contrast-[1.12] brightness-[0.92]"
+    playsInline
+    muted
+    loop
+    autoPlay
+    preload="metadata"
+    poster="/brain-poster.png"
+  >
+    <source src="https://fcwdgsfspejqfyjmazvk.supabase.co/storage/v1/object/public/web_data/79c89c5d-1cb6-43cc-b0c8-d0302186197b.mp4" type="video/mp4" />
+  </video>
+
+  {/* optional: tiny gloss highlight */}
+  <div className="pointer-events-none absolute inset-0">
+    <div className="absolute -top-6 left-0 right-0 h-10 bg-white/5 blur-xl opacity-60" />
+  </div>
+</div>
               <h1 className="text-8xl font-bold mb-6 bg-gradient-to-r from-white via-white/60 to-white bg-clip-text text-transparent">
                 scoraxAI
               </h1>
