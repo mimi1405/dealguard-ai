@@ -31,7 +31,7 @@ export default function Home() {
           <div className="relative z-10 max-w-7xl mx-auto">
             <div className="text-center max-w-3xl mx-auto">
               <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white via-white/60 to-white bg-clip-text text-transparent">
-                AI-Driven Due Diligence
+                scoraxAI
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
                 Transform your due diligence process with advanced AI analysis.
