@@ -81,6 +81,12 @@ const VERTEX_SHADER = `
     float edgeFade = smoothstep(1.08, 0.83, r);
 
     vAlpha = aBaseAlpha * 0.76 * mix(0.44, 1.0, coreWeight) * edgeFade;
+
+    // Center-weighted perceptual bias: gently lift alpha near brain center
+    float centerR = length(aOriginalPos);
+    float centerBias = smoothstep(0.9, 0.2, centerR);
+    vAlpha *= mix(1.0, 1.1, centerBias);
+
     vAlpha += aActivation * 0.35;
 
     vActivation = aActivation;
@@ -110,11 +116,14 @@ const FRAGMENT_SHADER = `
     float strength = 1.0 - smoothstep(0.0, 0.5, dist);
     strength = pow(strength, 2.0);
 
-    vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.4, vActivation));
-    color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.2);
+    // Activation contrast: pow curve expands mid-range for better hotspot visibility
+    float actCurve = pow(vActivation, 0.7);
+    vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.4, actCurve));
+    color = mix(color, uWarmColor, smoothstep(0.6, 1.0, actCurve) * 0.25);
 
     float depthDim = mix(1.0, 0.35, vDepth);
-    float alpha = strength * vAlpha * depthDim;
+    // Subtle global visibility lift (~10%)
+    float alpha = strength * vAlpha * depthDim * 1.1;
 
     gl_FragColor = vec4(color, alpha);
   }
