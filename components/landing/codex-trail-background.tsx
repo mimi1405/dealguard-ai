@@ -109,7 +109,7 @@ export function CodexTrailBackground() {
       const parent = canvas.parentElement;
       if (!parent) return;
 
-      dpr = window.devicePixelRatio || 1;
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       w = parent.clientWidth;
       h = parent.clientHeight;
 
