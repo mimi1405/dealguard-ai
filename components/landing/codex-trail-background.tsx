@@ -5,14 +5,15 @@ import { useRef, useEffect } from "react";
 const GLYPHS = "{}[]()<>=;:+-/*._~&|^%#@!?$".split("").concat(["=>", "::", ".."]);
 
 const FADE_ALPHA_ACTIVE = 0.14;
-const FADE_ALPHA_IDLE = 0.28;
+const FADE_ALPHA_IDLE = 0.30;
 const IDLE_THRESHOLD_MS = 140;
 const IDLE_CLEAN_MS = 2000;
 const EMIT_SPACING = 14;
+const MAX_STEPS_PER_FRAME = 28;
 const GLYPH_SIZE_MIN = 11;
 const GLYPH_SIZE_MAX = 17;
-const SHADOW_BLUR = 10;
-const SHADOW_ALPHA = 0.12;
+const SHADOW_BLUR = 8;
+const SHADOW_ALPHA = 0.10;
 const MIN_SPEED_SQ = 4;
 const BG_COLOR = "#0b0d10";
 const FONT = "'SF Mono','Fira Code','Cascadia Code','JetBrains Mono',monospace";
@@ -47,6 +48,7 @@ export function CodexTrailBackground() {
     const prev = { x: -9999, y: -9999 };
     let hasMoved = false;
     let lastMoveTime = 0;
+    let hardCleaned = false;
 
     const resize = () => {
       const parent = canvas.parentElement;
@@ -83,6 +85,7 @@ export function CodexTrailBackground() {
       cursor.x = x;
       cursor.y = y;
       lastMoveTime = performance.now();
+      hardCleaned = false;
     };
 
     const onPointerLeave = () => {
@@ -93,9 +96,8 @@ export function CodexTrailBackground() {
       hasMoved = false;
     };
 
-    const parentEl = canvas.parentElement!;
-    parentEl.addEventListener("pointermove", onPointerMove);
-    parentEl.addEventListener("pointerleave", onPointerLeave);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerleave", onPointerLeave);
 
     let needsEmit = false;
     let debugMode = false;
@@ -119,9 +121,11 @@ export function CodexTrailBackground() {
 
       ctx.save();
       ctx.globalCompositeOperation = "source-over";
+      ctx.shadowBlur = 0;
       ctx.filter = "none";
-      if (idleMs > IDLE_CLEAN_MS) {
+      if (idleMs > IDLE_CLEAN_MS && !hardCleaned) {
         ctx.globalAlpha = 1;
+        hardCleaned = true;
       } else {
         ctx.globalAlpha = fadeAlpha;
       }
@@ -137,15 +141,15 @@ export function CodexTrailBackground() {
         if (distSq > MIN_SPEED_SQ) {
           needsEmit = true;
           const dist = Math.sqrt(distSq);
-          const steps = Math.max(1, Math.floor(dist / EMIT_SPACING));
+          const steps = Math.min(Math.max(1, Math.floor(dist / EMIT_SPACING)), MAX_STEPS_PER_FRAME);
 
           for (let i = 0; i < steps; i++) {
             const t = (i + 1) / steps;
-            const gx = lerp(prev.x, cursor.x, t) + (Math.random() - 0.5) * 8;
-            const gy = lerp(prev.y, cursor.y, t) + (Math.random() - 0.5) * 8;
+            const gx = lerp(prev.x, cursor.x, t) + (Math.random() - 0.5) * 5;
+            const gy = lerp(prev.y, cursor.y, t) + (Math.random() - 0.5) * 5;
             const size = GLYPH_SIZE_MIN + Math.random() * (GLYPH_SIZE_MAX - GLYPH_SIZE_MIN);
             const glyph = pick(GLYPHS);
-            const alpha = 0.06 + Math.random() * 0.07;
+            const alpha = 0.05 + Math.random() * 0.07;
             const rotation = (Math.random() - 0.5) * 0.5;
 
             ctx.save();
@@ -162,7 +166,7 @@ export function CodexTrailBackground() {
             ctx.fillStyle = `rgba(255,255,255,${alpha})`;
             ctx.fillText(glyph, 0, 0);
             ctx.shadowBlur = 0;
-            ctx.globalAlpha = alpha * 0.22;
+            ctx.globalAlpha = alpha * 0.20;
             ctx.filter = "blur(2px)";
             ctx.fillText(glyph, 0, 0);
             ctx.restore();
@@ -204,8 +208,8 @@ export function CodexTrailBackground() {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", onKeyDown);
-      parentEl.removeEventListener("pointermove", onPointerMove);
-      parentEl.removeEventListener("pointerleave", onPointerLeave);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerleave", onPointerLeave);
       mql.removeEventListener("change", onMotionChange);
     };
   }, []);
