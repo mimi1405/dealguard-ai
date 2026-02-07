@@ -5,30 +5,52 @@ import { useRef, useEffect } from "react";
 const BG_COLOR = "#0b0d10";
 const IDLE_THRESHOLD_MS = 160;
 const IDLE_LIFE_MULTIPLIER = 0.7;
+
 const CLUSTER_SMOOTH = 0.12;
+
 const EMIT_RADIUS_MIN = 18;
 const EMIT_RADIUS_MAX = 38;
+
 const EMIT_COUNT_MIN = 6;
 const EMIT_COUNT_MAX = 14;
-const MAX_PARTICLES = 300;
+
+const MAX_PARTICLES = 320;
+
 const LIFE_MIN = 900;
 const LIFE_MAX = 1400;
-const BASE_ALPHA_MIN = 0.10;
-const BASE_ALPHA_MAX = 0.20;
-const PULL_PHASE = 0.25;
-const PULL_STRENGTH = 0.018;
+
+const BASE_ALPHA_MIN = 0.11;
+const BASE_ALPHA_MAX = 0.22;
+
+const PULL_PHASE = 0.28;
+const PULL_STRENGTH = 0.020;
+
 const SWIRL_MIN = 0.002;
 const SWIRL_MAX = 0.006;
-const DRIFT_DAMPING = 0.97;
+
+const DRIFT_DAMPING = 0.972;
+
 const GLOW_BLUR_MIN = 10;
 const GLOW_BLUR_MAX = 14;
 const GLOW_ALPHA = 0.10;
-const MARK_W_MIN = 6;
-const MARK_W_MAX = 14;
-const MARK_H_MIN = 1;
-const MARK_H_MAX = 2;
-const DOT_CHANCE = 0.15;
+
+const FONT =
+  "'SF Mono','Fira Code','Cascadia Code','JetBrains Mono',ui-monospace,monospace";
+
+// “Codex-ish” glyphs
+const GLYPHS = [
+  "-", "—", "·", "•", "o", "0", ":", ";", ".", ",",
+  ">", "<", "=", "+", "*", "/", "\\", "_",
+  "=>", "->", "<-", "::", "..", "++", "--", "||", "&&",
+] as const;
+
+const FONT_SIZE_MIN = 11;
+const FONT_SIZE_MAX = 17;
+
 const MIN_EMIT_DIST_SQ = 9;
+
+// Optional “digital” feel: set to 0 to disable
+const QUANTIZE = 6; // pixels
 
 interface Particle {
   x: number;
@@ -36,18 +58,24 @@ interface Particle {
   vx: number;
   vy: number;
   rot: number;
-  pw: number;
-  ph: number;
+
   bornAt: number;
   lifeMs: number;
   baseAlpha: number;
+
   cx: number;
   cy: number;
   swirl: number;
+
+  glyph: string;
+  fontSize: number;
 }
 
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
+}
+function pick<T>(arr: readonly T[]) {
+  return arr[(Math.random() * arr.length) | 0];
 }
 
 export function CodexTrailBackground() {
@@ -71,6 +99,7 @@ export function CodexTrailBackground() {
     const cursorRaw = { x: -9999, y: -9999 };
     const cluster = { x: -9999, y: -9999 };
     let hasMoved = false;
+
     let lastMoveTime = 0;
     let idleShrunk = false;
 
@@ -79,14 +108,20 @@ export function CodexTrailBackground() {
     const resize = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
+
       dpr = window.devicePixelRatio || 1;
       w = parent.clientWidth;
       h = parent.clientHeight;
+
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
+
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.filter = "none";
+      ctx.shadowBlur = 0;
       ctx.fillStyle = BG_COLOR;
       ctx.fillRect(0, 0, w, h);
     };
@@ -106,10 +141,13 @@ export function CodexTrailBackground() {
         cluster.x = x;
         cluster.y = y;
         hasMoved = true;
+        prevX = x;
+        prevY = y;
+      } else {
+        prevX = cursorRaw.x;
+        prevY = cursorRaw.y;
       }
 
-      prevX = cursorRaw.x;
-      prevY = cursorRaw.y;
       cursorRaw.x = x;
       cursorRaw.y = y;
       lastMoveTime = performance.now();
@@ -120,6 +158,8 @@ export function CodexTrailBackground() {
       cursorRaw.x = -9999;
       cursorRaw.y = -9999;
       hasMoved = false;
+      prevX = -9999;
+      prevY = -9999;
     };
 
     window.addEventListener("pointermove", onPointerMove);
@@ -131,34 +171,48 @@ export function CodexTrailBackground() {
       for (let i = 0; i < n; i++) {
         const angle = Math.random() * Math.PI * 2;
         const r = rand(EMIT_RADIUS_MIN, EMIT_RADIUS_MAX);
-        const isDot = Math.random() < DOT_CHANCE;
+        const glyph = pick(GLYPHS);
+        const fontSize = rand(FONT_SIZE_MIN, FONT_SIZE_MAX);
+
         particles.push({
           x: cx + Math.cos(angle) * r * Math.random(),
           y: cy + Math.sin(angle) * r * Math.random(),
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
-          rot: (Math.random() - 0.5) * 1.2,
-          pw: isDot ? 2 : rand(MARK_W_MIN, MARK_W_MAX),
-          ph: isDot ? 2 : rand(MARK_H_MIN, MARK_H_MAX),
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: (Math.random() - 0.5) * 0.35,
+
+          // Keep rotation subtle; Codex feels “typed”, not confetti
+          rot: (Math.random() - 0.5) * 0.35,
+
           bornAt: now,
           lifeMs: rand(LIFE_MIN, LIFE_MAX),
           baseAlpha: rand(BASE_ALPHA_MIN, BASE_ALPHA_MAX),
+
           cx,
           cy,
           swirl: rand(SWIRL_MIN, SWIRL_MAX),
+
+          glyph,
+          fontSize,
         });
       }
     };
+
+    const quantize = (v: number) =>
+      QUANTIZE > 0 ? Math.round(v / QUANTIZE) * QUANTIZE : v;
 
     const frame = () => {
       const now = performance.now();
       const idleMs = now - lastMoveTime;
       const isIdle = idleMs > IDLE_THRESHOLD_MS;
 
-      ctx.fillStyle = BG_COLOR;
+      // Clear fully each frame (TTL particle system, no “ink overlay”)
       ctx.globalAlpha = 1;
+      ctx.filter = "none";
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = BG_COLOR;
       ctx.fillRect(0, 0, w, h);
 
+      // Move cluster center + emit burst (cluster, not line)
       if (!isIdle && cursorRaw.x > -1000 && hasMoved) {
         cluster.x += (cursorRaw.x - cluster.x) * CLUSTER_SMOOTH;
         cluster.y += (cursorRaw.y - cluster.y) * CLUSTER_SMOOTH;
@@ -170,23 +224,27 @@ export function CodexTrailBackground() {
         if (distSq > MIN_EMIT_DIST_SQ) {
           const speed = Math.sqrt(distSq);
           const count = Math.round(
-            EMIT_COUNT_MIN + (EMIT_COUNT_MAX - EMIT_COUNT_MIN) * Math.min(speed / 60, 1)
+            EMIT_COUNT_MIN +
+              (EMIT_COUNT_MAX - EMIT_COUNT_MIN) * Math.min(speed / 60, 1)
           );
           emit(cluster.x, cluster.y, now, count);
         }
       }
 
+      // Idle cleanup: shorten remaining life once when going idle
       if (isIdle && !idleShrunk && particles.length > 0) {
         idleShrunk = true;
         for (let i = 0; i < particles.length; i++) {
           const p = particles[i];
-          const remaining = p.lifeMs - (now - p.bornAt);
+          const age = now - p.bornAt;
+          const remaining = p.lifeMs - age;
           if (remaining > 0) {
-            p.lifeMs = p.bornAt + (now - p.bornAt) + remaining * IDLE_LIFE_MULTIPLIER - p.bornAt;
+            p.lifeMs = age + remaining * IDLE_LIFE_MULTIPLIER;
           }
         }
       }
 
+      // Update/draw alive particles
       let alive = 0;
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
@@ -197,12 +255,16 @@ export function CodexTrailBackground() {
         const alpha = p.baseAlpha * Math.pow(1 - t, 2.2);
         if (alpha < 0.003) continue;
 
+        // Dynamics: inward pull + swirl early, then dissolve drift
         if (t < PULL_PHASE) {
           const pull = PULL_STRENGTH * (1 - t / PULL_PHASE);
           let ax = (p.cx - p.x) * pull;
           let ay = (p.cy - p.y) * pull;
+
+          // tangential swirl around center
           ax += -(p.cy - p.y) * p.swirl;
           ay += (p.cx - p.x) * p.swirl;
+
           p.vx += ax;
           p.vy += ay;
         } else {
@@ -215,19 +277,33 @@ export function CodexTrailBackground() {
         p.x += p.vx;
         p.y += p.vy;
 
-        const blur = rand(GLOW_BLUR_MIN, GLOW_BLUR_MAX);
+        const drawX = quantize(p.x);
+        const drawY = quantize(p.y);
 
+        // Render glyph (Codex-ish): sharp + subtle blurred pass
         ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.translate(p.x, p.y);
+        ctx.translate(drawX, drawY);
         ctx.rotate(p.rot);
-        ctx.shadowBlur = blur;
+
+        ctx.font = `${p.fontSize}px ${FONT}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        // Sharp pass
+        ctx.globalAlpha = alpha;
+        ctx.shadowBlur = rand(GLOW_BLUR_MIN, GLOW_BLUR_MAX);
         ctx.shadowColor = `rgba(255,255,255,${GLOW_ALPHA})`;
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.roundRect(-p.pw / 2, -p.ph / 2, p.pw, p.ph, Math.min(p.pw, p.ph) / 2);
-        ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,1)";
+        ctx.fillText(p.glyph, 0, 0);
+
+        // Soft pass
+        ctx.globalAlpha = alpha * 0.35;
+        ctx.shadowBlur = 0;
+        ctx.filter = "blur(2px)";
+        ctx.fillText(p.glyph, 0, 0);
+
         ctx.restore();
+        ctx.filter = "none";
 
         particles[alive] = p;
         alive++;
@@ -242,8 +318,10 @@ export function CodexTrailBackground() {
     const onMotionChange = () => {
       if (mql.matches) {
         cancelAnimationFrame(raf);
-        ctx.fillStyle = BG_COLOR;
         ctx.globalAlpha = 1;
+        ctx.filter = "none";
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = BG_COLOR;
         ctx.fillRect(0, 0, w, h);
       }
     };
