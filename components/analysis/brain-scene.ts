@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { generateBrainPoints, generateActivationSeeds, ActivationSeed } from './brain-geometry';
 
 const VERTEX_SHADER = `
@@ -12,7 +11,6 @@ const VERTEX_SHADER = `
   uniform float uTime;
   uniform float uPixelRatio;
 
-  // Simplex-style pseudo noise for organic drift
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
   vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
   vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
@@ -62,7 +60,6 @@ const VERTEX_SHADER = `
   }
 
   void main() {
-    // Organic drift: each particle wanders based on 3D noise field
     float drift = 0.04;
     vec3 offset = vec3(
       snoise(aOriginalPos * 2.0 + uTime * 0.15) * drift,
@@ -73,11 +70,9 @@ const VERTEX_SHADER = `
     vec3 pos = aOriginalPos + offset;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
 
-    // Size: slightly vary per particle, shrink with distance
     float size = (1.2 + aBaseAlpha * 0.8) * uPixelRatio;
     gl_PointSize = size * (200.0 / -mvPosition.z);
 
-    // Alpha combines base randomness with activation glow
     vAlpha = aBaseAlpha * 0.35 + aActivation * 0.65;
     vActivation = aActivation;
 
@@ -94,13 +89,11 @@ const FRAGMENT_SHADER = `
   uniform vec3 uWarmColor;
 
   void main() {
-    // Soft circular point with falloff
     float dist = length(gl_PointCoord - vec2(0.5));
     if (dist > 0.5) discard;
     float strength = 1.0 - smoothstep(0.0, 0.5, dist);
     strength = pow(strength, 1.5);
 
-    // Blend base -> active -> warm based on activation intensity
     vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.6, vActivation));
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, vActivation) * 0.3);
 
@@ -110,27 +103,32 @@ const FRAGMENT_SHADER = `
 `;
 
 export interface BrainScene {
-  mount: (container: HTMLElement) => void;
+  mount: (container: HTMLElement) => Promise<void>;
   unmount: () => void;
   setReducedMotion: (reduced: boolean) => void;
 }
 
+// Three.js is loaded dynamically at mount time to avoid SSR resolution issues.
 export function createBrainScene(particleCount: number = 20000): BrainScene {
-  let renderer: THREE.WebGLRenderer | null = null;
-  let scene: THREE.Scene | null = null;
-  let camera: THREE.PerspectiveCamera | null = null;
+  let renderer: any = null;
+  let scene: any = null;
+  let camera: any = null;
   let animationId: number | null = null;
-  let particles: THREE.Points | null = null;
-  let activationAttr: THREE.BufferAttribute | null = null;
+  let particles: any = null;
+  let activationAttr: any = null;
   let seeds: ActivationSeed[] = [];
   let positions: Float32Array | null = null;
   let reducedMotion = false;
+  let clock: any = null;
+  let resizeHandler: (() => void) | null = null;
 
-  const clock = new THREE.Clock();
+  async function mount(container: HTMLElement) {
+    const THREE = await import('three');
 
-  function mount(container: HTMLElement) {
     const width = container.clientWidth;
     const height = container.clientHeight;
+
+    clock = new THREE.Clock();
 
     renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -183,7 +181,7 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
     particles = new THREE.Points(geometry, material);
     scene.add(particles);
 
-    const onResize = () => {
+    resizeHandler = () => {
       if (!renderer || !camera) return;
       const w = container.clientWidth;
       const h = container.clientHeight;
@@ -191,18 +189,15 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     };
-
-    window.addEventListener('resize', onResize);
+    window.addEventListener('resize', resizeHandler);
 
     const animate = () => {
       animationId = requestAnimationFrame(animate);
       if (!renderer || !scene || !camera || !particles || !activationAttr || !positions) return;
 
       const elapsed = clock.getElapsedTime();
-      const mat = particles.material as THREE.ShaderMaterial;
-      mat.uniforms.uTime.value = elapsed;
+      particles.material.uniforms.uTime.value = elapsed;
 
-      // Update activation values per-particle based on proximity to seeds
       const actArr = activationAttr.array as Float32Array;
       for (let i = 0; i < particleCount; i++) {
         const px = positions[i * 3];
@@ -217,24 +212,20 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
           const dz = pz - seed.position.z;
           const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-          // Each seed pulses with its own phase and speed
           const pulse = Math.sin(elapsed * seed.speed + seed.phase) * 0.5 + 0.5;
           const falloff = Math.max(0, 1 - dist / seed.radius);
           const activation = falloff * falloff * pulse;
           if (activation > maxAct) maxAct = activation;
         }
 
-        // Smooth transition toward target to prevent flickering
         actArr[i] += (maxAct - actArr[i]) * 0.08;
       }
       activationAttr.needsUpdate = true;
 
-      // Extremely subtle camera micro-drift
       if (!reducedMotion) {
         camera.position.x = Math.sin(elapsed * 0.05) * 0.03;
         camera.position.y = 0.1 + Math.cos(elapsed * 0.04) * 0.02;
         camera.lookAt(0, 0, 0);
-
         particles.rotation.y = Math.sin(elapsed * 0.02) * 0.03;
       }
 
@@ -249,6 +240,10 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
       cancelAnimationFrame(animationId);
       animationId = null;
     }
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler);
+      resizeHandler = null;
+    }
     if (renderer) {
       renderer.domElement.remove();
       renderer.dispose();
@@ -256,7 +251,7 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
     }
     if (particles) {
       particles.geometry.dispose();
-      (particles.material as THREE.ShaderMaterial).dispose();
+      particles.material.dispose();
       particles = null;
     }
     scene = null;
@@ -264,6 +259,7 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
     activationAttr = null;
     positions = null;
     seeds = [];
+    clock = null;
   }
 
   function setReducedMotion(reduced: boolean) {

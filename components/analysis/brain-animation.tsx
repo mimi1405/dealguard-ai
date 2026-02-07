@@ -27,8 +27,11 @@ export function BrainAnimation({ particleCount = 20000, className }: BrainAnimat
     sceneRef.current = brainScene;
     brainScene.setReducedMotion(reducedMotion);
 
+    let cancelled = false;
     if (containerRef.current) {
-      brainScene.mount(containerRef.current);
+      brainScene.mount(containerRef.current).catch(() => {
+        if (!cancelled) setWebglSupported(false);
+      });
     }
 
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -38,6 +41,7 @@ export function BrainAnimation({ particleCount = 20000, className }: BrainAnimat
     motionQuery.addEventListener('change', handleMotionChange);
 
     return () => {
+      cancelled = true;
       motionQuery.removeEventListener('change', handleMotionChange);
       brainScene.unmount();
       sceneRef.current = null;

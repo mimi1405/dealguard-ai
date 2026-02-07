@@ -1,5 +1,3 @@
-import * as THREE from 'three';
-
 // Generates points distributed within a brain-like volume using
 // superellipsoid shaping with hemisphere asymmetry. Points are
 // rejection-sampled from a bounding box and kept only if they
@@ -52,10 +50,17 @@ export function generateBrainPoints(count: number): Float32Array {
   return positions;
 }
 
+// Plain 3D vector — avoids importing Three.js in this pure-math module.
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
 // Creates activation seed points scattered throughout the brain volume.
 // Each seed has a position, phase offset, and speed for independent timing.
 export interface ActivationSeed {
-  position: THREE.Vector3;
+  position: Vec3;
   phase: number;
   speed: number;
   radius: number;
@@ -68,11 +73,11 @@ export function generateActivationSeeds(count: number): ActivationSeed[] {
     const phi = Math.acos(2 * Math.random() - 1);
     const r = Math.random() * 0.7;
     seeds.push({
-      position: new THREE.Vector3(
-        r * Math.sin(phi) * Math.cos(theta),
-        r * Math.cos(phi) * 0.75,
-        r * Math.sin(phi) * Math.sin(theta) * 0.85
-      ),
+      position: {
+        x: r * Math.sin(phi) * Math.cos(theta),
+        y: r * Math.cos(phi) * 0.75,
+        z: r * Math.sin(phi) * Math.sin(theta) * 0.85,
+      },
       phase: Math.random() * Math.PI * 2,
       speed: 0.3 + Math.random() * 0.6,
       radius: 0.15 + Math.random() * 0.2,
