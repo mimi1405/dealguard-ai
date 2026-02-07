@@ -2,28 +2,52 @@
 
 import { useRef, useEffect } from "react";
 
-const GLYPHS = "{}[]()<>=;:+-/*._~&|^%#@!?$".split("").concat(["=>", "::", ".."]);
-
-const FADE_ALPHA_ACTIVE = 0.14;
-const FADE_ALPHA_IDLE = 0.30;
-const IDLE_THRESHOLD_MS = 140;
-const IDLE_CLEAN_MS = 2000;
-const EMIT_SPACING = 14;
-const MAX_STEPS_PER_FRAME = 28;
-const GLYPH_SIZE_MIN = 11;
-const GLYPH_SIZE_MAX = 17;
-const SHADOW_BLUR = 8;
-const SHADOW_ALPHA = 0.10;
-const MIN_SPEED_SQ = 4;
 const BG_COLOR = "#0b0d10";
-const FONT = "'SF Mono','Fira Code','Cascadia Code','JetBrains Mono',monospace";
+const IDLE_THRESHOLD_MS = 160;
+const IDLE_LIFE_MULTIPLIER = 0.7;
+const CLUSTER_SMOOTH = 0.12;
+const EMIT_RADIUS_MIN = 18;
+const EMIT_RADIUS_MAX = 38;
+const EMIT_COUNT_MIN = 6;
+const EMIT_COUNT_MAX = 14;
+const MAX_PARTICLES = 300;
+const LIFE_MIN = 900;
+const LIFE_MAX = 1400;
+const BASE_ALPHA_MIN = 0.10;
+const BASE_ALPHA_MAX = 0.20;
+const PULL_PHASE = 0.25;
+const PULL_STRENGTH = 0.018;
+const SWIRL_MIN = 0.002;
+const SWIRL_MAX = 0.006;
+const DRIFT_DAMPING = 0.97;
+const GLOW_BLUR_MIN = 10;
+const GLOW_BLUR_MAX = 14;
+const GLOW_ALPHA = 0.10;
+const MARK_W_MIN = 6;
+const MARK_W_MAX = 14;
+const MARK_H_MIN = 1;
+const MARK_H_MAX = 2;
+const DOT_CHANCE = 0.15;
+const MIN_EMIT_DIST_SQ = 9;
 
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  rot: number;
+  pw: number;
+  ph: number;
+  bornAt: number;
+  lifeMs: number;
+  baseAlpha: number;
+  cx: number;
+  cy: number;
+  swirl: number;
 }
 
-function lerp(a: number, b: number, t: number) {
-  return a + (b - a) * t;
+function rand(min: number, max: number) {
+  return min + Math.random() * (max - min);
 }
 
 export function CodexTrailBackground() {
@@ -44,11 +68,13 @@ export function CodexTrailBackground() {
     let dpr = 1;
     let raf = 0;
 
-    const cursor = { x: -9999, y: -9999 };
-    const prev = { x: -9999, y: -9999 };
+    const cursorRaw = { x: -9999, y: -9999 };
+    const cluster = { x: -9999, y: -9999 };
     let hasMoved = false;
     let lastMoveTime = 0;
-    let hardCleaned = false;
+    let idleShrunk = false;
+
+    const particles: Particle[] = [];
 
     const resize = () => {
       const parent = canvas.parentElement;
@@ -61,12 +87,15 @@ export function CodexTrailBackground() {
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = "#0b0d10";
+      ctx.fillStyle = BG_COLOR;
       ctx.fillRect(0, 0, w, h);
     };
 
     resize();
     window.addEventListener("resize", resize);
+
+    let prevX = -9999;
+    let prevY = -9999;
 
     const onPointerMove = (e: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -74,121 +103,136 @@ export function CodexTrailBackground() {
       const y = e.clientY - rect.top;
 
       if (!hasMoved) {
-        prev.x = x;
-        prev.y = y;
+        cluster.x = x;
+        cluster.y = y;
         hasMoved = true;
-      } else {
-        prev.x = cursor.x;
-        prev.y = cursor.y;
       }
 
-      cursor.x = x;
-      cursor.y = y;
+      prevX = cursorRaw.x;
+      prevY = cursorRaw.y;
+      cursorRaw.x = x;
+      cursorRaw.y = y;
       lastMoveTime = performance.now();
-      hardCleaned = false;
+      idleShrunk = false;
     };
 
     const onPointerLeave = () => {
-      cursor.x = -9999;
-      cursor.y = -9999;
-      prev.x = -9999;
-      prev.y = -9999;
+      cursorRaw.x = -9999;
+      cursorRaw.y = -9999;
       hasMoved = false;
     };
 
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerleave", onPointerLeave);
 
-    let needsEmit = false;
-    let debugMode = false;
-    let frameCount = 0;
-    let lastFpsTime = performance.now();
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "d" || e.key === "D") {
-        debugMode = !debugMode;
-        if (debugMode) console.log("[CodexTrail] debug ON");
-        else console.log("[CodexTrail] debug OFF");
+    const emit = (cx: number, cy: number, now: number, count: number) => {
+      const budget = MAX_PARTICLES - particles.length;
+      const n = Math.min(count, budget);
+      for (let i = 0; i < n; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = rand(EMIT_RADIUS_MIN, EMIT_RADIUS_MAX);
+        const isDot = Math.random() < DOT_CHANCE;
+        particles.push({
+          x: cx + Math.cos(angle) * r * Math.random(),
+          y: cy + Math.sin(angle) * r * Math.random(),
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          rot: (Math.random() - 0.5) * 1.2,
+          pw: isDot ? 2 : rand(MARK_W_MIN, MARK_W_MAX),
+          ph: isDot ? 2 : rand(MARK_H_MIN, MARK_H_MAX),
+          bornAt: now,
+          lifeMs: rand(LIFE_MIN, LIFE_MAX),
+          baseAlpha: rand(BASE_ALPHA_MIN, BASE_ALPHA_MAX),
+          cx,
+          cy,
+          swirl: rand(SWIRL_MIN, SWIRL_MAX),
+        });
       }
     };
-    window.addEventListener("keydown", onKeyDown);
 
     const frame = () => {
       const now = performance.now();
       const idleMs = now - lastMoveTime;
       const isIdle = idleMs > IDLE_THRESHOLD_MS;
-      const fadeAlpha = isIdle ? FADE_ALPHA_IDLE : FADE_ALPHA_ACTIVE;
 
-      ctx.save();
-      ctx.globalCompositeOperation = "source-over";
-      ctx.shadowBlur = 0;
-      ctx.filter = "none";
-      if (idleMs > IDLE_CLEAN_MS && !hardCleaned) {
-        ctx.globalAlpha = 1;
-        hardCleaned = true;
-      } else {
-        ctx.globalAlpha = fadeAlpha;
-      }
       ctx.fillStyle = BG_COLOR;
+      ctx.globalAlpha = 1;
       ctx.fillRect(0, 0, w, h);
-      ctx.restore();
 
-      if (cursor.x > -1000 && prev.x > -1000) {
-        const dx = cursor.x - prev.x;
-        const dy = cursor.y - prev.y;
+      if (!isIdle && cursorRaw.x > -1000 && hasMoved) {
+        cluster.x += (cursorRaw.x - cluster.x) * CLUSTER_SMOOTH;
+        cluster.y += (cursorRaw.y - cluster.y) * CLUSTER_SMOOTH;
+
+        const dx = cursorRaw.x - prevX;
+        const dy = cursorRaw.y - prevY;
         const distSq = dx * dx + dy * dy;
 
-        if (distSq > MIN_SPEED_SQ) {
-          needsEmit = true;
-          const dist = Math.sqrt(distSq);
-          const steps = Math.min(Math.max(1, Math.floor(dist / EMIT_SPACING)), MAX_STEPS_PER_FRAME);
+        if (distSq > MIN_EMIT_DIST_SQ) {
+          const speed = Math.sqrt(distSq);
+          const count = Math.round(
+            EMIT_COUNT_MIN + (EMIT_COUNT_MAX - EMIT_COUNT_MIN) * Math.min(speed / 60, 1)
+          );
+          emit(cluster.x, cluster.y, now, count);
+        }
+      }
 
-          for (let i = 0; i < steps; i++) {
-            const t = (i + 1) / steps;
-            const gx = lerp(prev.x, cursor.x, t) + (Math.random() - 0.5) * 5;
-            const gy = lerp(prev.y, cursor.y, t) + (Math.random() - 0.5) * 5;
-            const size = GLYPH_SIZE_MIN + Math.random() * (GLYPH_SIZE_MAX - GLYPH_SIZE_MIN);
-            const glyph = pick(GLYPHS);
-            const alpha = 0.05 + Math.random() * 0.07;
-            const rotation = (Math.random() - 0.5) * 0.5;
-
-            ctx.save();
-            ctx.globalCompositeOperation = "source-over";
-            ctx.globalAlpha = 1;
-            ctx.filter = "none";
-            ctx.translate(gx, gy);
-            ctx.rotate(rotation);
-            ctx.font = `${size}px ${FONT}`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.shadowBlur = SHADOW_BLUR;
-            ctx.shadowColor = `rgba(255,255,255,${SHADOW_ALPHA})`;
-            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-            ctx.fillText(glyph, 0, 0);
-            ctx.shadowBlur = 0;
-            ctx.globalAlpha = alpha * 0.20;
-            ctx.filter = "blur(2px)";
-            ctx.fillText(glyph, 0, 0);
-            ctx.restore();
+      if (isIdle && !idleShrunk && particles.length > 0) {
+        idleShrunk = true;
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          const remaining = p.lifeMs - (now - p.bornAt);
+          if (remaining > 0) {
+            p.lifeMs = p.bornAt + (now - p.bornAt) + remaining * IDLE_LIFE_MULTIPLIER - p.bornAt;
           }
+        }
+      }
+
+      let alive = 0;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const age = now - p.bornAt;
+        if (age >= p.lifeMs) continue;
+
+        const t = age / p.lifeMs;
+        const alpha = p.baseAlpha * Math.pow(1 - t, 2.2);
+        if (alpha < 0.003) continue;
+
+        if (t < PULL_PHASE) {
+          const pull = PULL_STRENGTH * (1 - t / PULL_PHASE);
+          let ax = (p.cx - p.x) * pull;
+          let ay = (p.cy - p.y) * pull;
+          ax += -(p.cy - p.y) * p.swirl;
+          ay += (p.cx - p.x) * p.swirl;
+          p.vx += ax;
+          p.vy += ay;
         } else {
-          needsEmit = false;
+          p.vx += (Math.random() - 0.5) * 0.08;
+          p.vy += (Math.random() - 0.5) * 0.08;
         }
-      }
 
-      if (needsEmit) {
-        prev.x = cursor.x;
-        prev.y = cursor.y;
-      }
+        p.vx *= DRIFT_DAMPING;
+        p.vy *= DRIFT_DAMPING;
+        p.x += p.vx;
+        p.y += p.vy;
 
-      if (debugMode) {
-        frameCount++;
-        if (now - lastFpsTime >= 1000) {
-          console.log(`[CodexTrail] fps=${frameCount} fadeAlpha=${fadeAlpha.toFixed(3)} idle=${isIdle}`);
-          frameCount = 0;
-          lastFpsTime = now;
-        }
+        const blur = rand(GLOW_BLUR_MIN, GLOW_BLUR_MAX);
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.shadowBlur = blur;
+        ctx.shadowColor = `rgba(255,255,255,${GLOW_ALPHA})`;
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.roundRect(-p.pw / 2, -p.ph / 2, p.pw, p.ph, Math.min(p.pw, p.ph) / 2);
+        ctx.fill();
+        ctx.restore();
+
+        particles[alive] = p;
+        alive++;
       }
+      particles.length = alive;
 
       raf = requestAnimationFrame(frame);
     };
@@ -198,7 +242,8 @@ export function CodexTrailBackground() {
     const onMotionChange = () => {
       if (mql.matches) {
         cancelAnimationFrame(raf);
-        ctx.fillStyle = "#0b0d10";
+        ctx.fillStyle = BG_COLOR;
+        ctx.globalAlpha = 1;
         ctx.fillRect(0, 0, w, h);
       }
     };
@@ -207,7 +252,6 @@ export function CodexTrailBackground() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerleave", onPointerLeave);
       mql.removeEventListener("change", onMotionChange);
