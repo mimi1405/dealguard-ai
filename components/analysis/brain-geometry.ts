@@ -43,8 +43,9 @@ export function generateBrainPoints(count: number): BrainGeometryData {
   const midNoPoints = 0.03; // avoids "ball with a line"
 
   // Cerebellum / Brainstem params
-  const cerebCenter = { x: 0.0, y: -0.38, z: -0.70 };
-  const cerebScale = { x: 0.62, y: 0.42, z: 0.46 };
+  const cerebCenter = { x: 0.0, y: -0.30, z: -0.62 };
+  const cerebScale = { x: 0.50, y: 0.32, z: 0.36 };
+
 
   const stemCenter = { x: 0.0, y: -0.74, z: -0.25 };
 const stemScale = { x: 0.12, y: 0.18, z: 0.12 };
