@@ -9,6 +9,7 @@ import { AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { DealScore, CanonicalFact, Fact, SCORE_GRADE_LABELS } from '@/lib/types/database';
 import { BrainAnimation } from '@/components/analysis/brain-animation';
+import { AnalysisStatus } from '@/components/analysis/analysis-status';
 
 interface CategoryScoreRow {
   deal_id: string;
