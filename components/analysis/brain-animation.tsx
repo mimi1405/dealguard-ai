@@ -127,4 +127,11 @@ export function BrainAnimation({
       </div>
     );
   }
+
+  return (
+  <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
+    {/* DAS ist das Mount-Ziel für WebGL */}
+    <div ref={containerRef} className="absolute inset-0" />
+  </div>
+);
 }
