@@ -108,7 +108,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Deal mismatch" }, { status: 403 });
     }
 
-    const n8nUrl = process.env.N8N_CHUNK_WEBHOOK_URL;
+    const n8nUrl = process.env.N8N_CHUNK_WEBHOOK_URL_TEST;
     if (!n8nUrl) {
       return NextResponse.json(
         { error: "N8N_CHUNK_WEBHOOK_URL is not configured" },
