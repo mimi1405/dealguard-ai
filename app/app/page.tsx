@@ -25,27 +25,29 @@ export default function DashboardPage() {
         } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { count: projectsCount } = await supabase
-          .from('projects')
-          .select('*', { count: 'exact', head: true })
-          .eq('owner_id', user.id);
+        const { count: dealsCount } = await supabase
+          .from('deals')
+          .select('*', { count: 'exact', head: true });
 
         const { count: documentsCount } = await supabase
           .from('documents')
-          .select('*', { count: 'exact', head: true })
-          .eq('owner_id', user.id);
+          .select('*', { count: 'exact', head: true });
 
-        const { count: analysesCount } = await supabase
-          .from('analyses')
+        const { count: completedCount } = await supabase
+          .from('deals')
           .select('*', { count: 'exact', head: true })
-          .eq('owner_id', user.id)
           .eq('analysis_status', 'completed');
 
+        const { count: runningCount } = await supabase
+          .from('deals')
+          .select('*', { count: 'exact', head: true })
+          .eq('analysis_status', 'running');
+
         setStats({
-          totalProjects: projectsCount || 0,
-          activeProjects: projectsCount || 0,
+          totalProjects: dealsCount || 0,
+          activeProjects: runningCount || 0,
           totalDocuments: documentsCount || 0,
-          completedAnalyses: analysesCount || 0,
+          completedAnalyses: completedCount || 0,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -55,7 +57,7 @@ export default function DashboardPage() {
     };
 
     fetchStats();
-  }, [supabase]);
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -161,7 +163,7 @@ export default function DashboardPage() {
               3
             </div>
             <div>
-              <h3 className="font-semibold">Complete Questionnaire</h3>
+              <h3 className="font-semibold">Add Investment Thesis</h3>
               <p className="text-sm text-muted-foreground">
                 Define your investment thesis and key focus areas
               </p>

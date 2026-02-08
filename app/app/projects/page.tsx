@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Calendar, TrendingUp, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
-import { Deal, DEAL_TYPE_LABELS, DEAL_STATUS_LABELS } from '@/lib/types/database';
+import { Deal, DEAL_TYPE_LABELS } from '@/lib/types/database';
 
 export default function DealsPage() {
   const supabase = createClient();
@@ -116,12 +116,12 @@ export default function DealsPage() {
               <Card className="hover:border-white/20 transition-colors cursor-pointer h-full">
                 <CardHeader>
                   <div className="flex items-start justify-between mb-2">
-                    <CardTitle className="text-lg">{deal.name}</CardTitle>
+                    <CardTitle className="text-lg">{deal.title}</CardTitle>
                     <div className="flex gap-2">
-                      <Badge variant="outline" className={getStatusColor(deal.status)}>
+                      <Badge variant="outline" className={getStatusColor(deal.analysis_status)}>
                         <span className="flex items-center gap-1">
-                          {getStatusIcon(deal.status)}
-                          {DEAL_STATUS_LABELS[deal.status]}
+                          {getStatusIcon(deal.analysis_status)}
+                          {deal.analysis_status.charAt(0).toUpperCase() + deal.analysis_status.slice(1)}
                         </span>
                       </Badge>
                     </div>
@@ -133,10 +133,10 @@ export default function DealsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
-                    {deal.stage && (
+                    {deal.target_stage && (
                       <div>
                         <span className="text-muted-foreground">Stage: </span>
-                        <span className="font-medium capitalize">{deal.stage.replace('_', ' ')}</span>
+                        <span className="font-medium capitalize">{deal.target_stage.replace('_', ' ')}</span>
                       </div>
                     )}
                     {deal.jurisdiction && (

@@ -48,27 +48,31 @@ export function MetaEditor({ dealId, initialData, onUpdate }: MetaEditorProps) {
   const [success, setSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
+    client_name: '',
     deal_type: '' as DealType,
     industry: '',
     jurisdiction: '',
-    confidentiality_level: 'medium' as ConfidentialityLevel,
+    confidentiality: 'medium' as ConfidentialityLevel,
     transaction_volume_range: '' as TransactionVolumeRange | '',
-    stage: '' as DealStage | '',
-    notes: '',
+    target_stage: '' as DealStage | '',
+    thesis: '',
+    website_url: '',
   });
 
   useEffect(() => {
     if (initialData) {
       setFormData({
-        name: initialData.name || '',
+        title: initialData.title || '',
+        client_name: initialData.client_name || '',
         deal_type: initialData.deal_type,
         industry: initialData.industry || '',
         jurisdiction: initialData.jurisdiction || '',
-        confidentiality_level: initialData.confidentiality_level,
+        confidentiality: initialData.confidentiality || 'medium',
         transaction_volume_range: initialData.transaction_volume_range || '',
-        stage: initialData.stage || '',
-        notes: initialData.notes || '',
+        target_stage: initialData.target_stage || '',
+        thesis: initialData.thesis || '',
+        website_url: initialData.website_url || '',
       });
     }
   }, [initialData]);
@@ -80,14 +84,16 @@ export function MetaEditor({ dealId, initialData, onUpdate }: MetaEditorProps) {
 
     try {
       const updateData = {
-        name: formData.name,
+        title: formData.title,
+        client_name: formData.client_name || null,
         deal_type: formData.deal_type,
         industry: formData.industry || null,
         jurisdiction: formData.jurisdiction || null,
-        confidentiality_level: formData.confidentiality_level,
+        confidentiality: formData.confidentiality,
         transaction_volume_range: formData.transaction_volume_range || null,
-        stage: formData.stage || null,
-        notes: formData.notes || null,
+        target_stage: formData.target_stage || null,
+        thesis: formData.thesis || null,
+        website_url: formData.website_url || null,
       };
 
       const { error } = await supabase
@@ -116,11 +122,20 @@ export function MetaEditor({ dealId, initialData, onUpdate }: MetaEditorProps) {
         <CardContent className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="name">Deal Name *</Label>
+              <Label htmlFor="title">Deal Title *</Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="client_name">Client Name</Label>
+              <Input
+                id="client_name"
+                value={formData.client_name}
+                onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
               />
             </div>
 
@@ -144,12 +159,12 @@ export function MetaEditor({ dealId, initialData, onUpdate }: MetaEditorProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="stage">Company Stage</Label>
+              <Label htmlFor="target_stage">Target Stage</Label>
               <Select
-                value={formData.stage}
-                onValueChange={(value) => setFormData({ ...formData, stage: value as DealStage })}
+                value={formData.target_stage}
+                onValueChange={(value) => setFormData({ ...formData, target_stage: value as DealStage })}
               >
-                <SelectTrigger id="stage">
+                <SelectTrigger id="target_stage">
                   <SelectValue placeholder="Select stage" />
                 </SelectTrigger>
                 <SelectContent>
@@ -200,12 +215,12 @@ export function MetaEditor({ dealId, initialData, onUpdate }: MetaEditorProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confidentiality_level">Confidentiality Level *</Label>
+              <Label htmlFor="confidentiality">Confidentiality Level *</Label>
               <Select
-                value={formData.confidentiality_level}
-                onValueChange={(value) => setFormData({ ...formData, confidentiality_level: value as ConfidentialityLevel })}
+                value={formData.confidentiality}
+                onValueChange={(value) => setFormData({ ...formData, confidentiality: value as ConfidentialityLevel })}
               >
-                <SelectTrigger id="confidentiality_level">
+                <SelectTrigger id="confidentiality">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -217,14 +232,24 @@ export function MetaEditor({ dealId, initialData, onUpdate }: MetaEditorProps) {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="website_url">Website URL</Label>
+              <Input
+                id="website_url"
+                value={formData.website_url}
+                onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
+                type="url"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="thesis">Investment Thesis</Label>
             <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              id="thesis"
+              value={formData.thesis}
+              onChange={(e) => setFormData({ ...formData, thesis: e.target.value })}
               rows={4}
             />
           </div>

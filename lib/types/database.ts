@@ -22,7 +22,7 @@ export type DealStage =
 
 export type ConfidentialityLevel = 'low' | 'medium' | 'high';
 
-export type DealStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type AnalysisStatus = 'draft' | 'running' | 'completed' | 'failed';
 
 export type DocumentType =
   | 'pitchdeck'
@@ -38,130 +38,125 @@ export type DocumentStatus =
   | 'extracted'
   | 'failed';
 
-export type ExtractionMethod = 'pdf_text' | 'ocr' | 'hybrid';
-
-export type FactType =
-  | 'company'
-  | 'founder'
-  | 'key_point'
-  | 'risk'
-  | 'financial_metric'
-  | 'legal_issue'
-  | 'market'
-  | 'traction'
-  | 'cap_table_item';
-
 export type RunStatus = 'queued' | 'running' | 'completed' | 'failed';
 
 export type ScoreGrade = 'a' | 'b' | 'c' | 'd' | 'e';
 
+export type CheckpointStatus = 'pending' | 'passed' | 'failed' | 'warning';
+
 export interface Deal {
   id: string;
-  created_at: string;
-  updated_at: string;
-  name: string;
+  title: string;
+  client_name: string | null;
   deal_type: DealType;
   industry: string | null;
   jurisdiction: string | null;
+  confidentiality: ConfidentialityLevel | null;
   transaction_volume_range: TransactionVolumeRange | null;
-  stage: DealStage | null;
-  confidentiality_level: ConfidentialityLevel;
-  status: DealStatus;
-  last_run_id: string | null;
-  notes: string | null;
-  workspace_id: string | null;
+  target_stage: DealStage | null;
+  thesis: string | null;
+  analysis_status: AnalysisStatus;
+  analysis_error: string | null;
+  created_at: string;
+  updated_at: string;
+  website_url: string | null;
+}
+
+export interface Category {
+  id: number;
+  key: string;
+  title: string;
+  weight: number;
+  sort_order: number;
+}
+
+export interface Checkpoint {
+  id: string;
+  category_id: number;
+  code: string;
+  text: string;
+  sort_order: number;
 }
 
 export interface Document {
   id: string;
-  created_at: string;
   deal_id: string;
   doc_type: DocumentType;
   original_filename: string;
-  storage_bucket: string;
   storage_path: string;
   mime_type: string | null;
+  created_at: string;
+  storage_bucket: string;
   size_bytes: number;
-  sha256: string | null;
   status: DocumentStatus;
 }
 
-export interface ExtractedText {
-  id: string;
-  created_at: string;
+export interface Extraction {
   document_id: string;
-  text: string;
+  extractor: string;
+  extractor_version: string | null;
   language: string | null;
-  extraction_method: ExtractionMethod;
-  extraction_warnings: any[];
+  raw_text: string;
+  meta: Record<string, any>;
+  created_at: string;
 }
 
 export interface Chunk {
   id: string;
-  created_at: string;
+  deal_id: string;
   document_id: string;
-  extracted_text_id: string;
   chunk_index: number;
   page_start: number | null;
   page_end: number | null;
   text: string;
   token_estimate: number | null;
-}
-
-export interface Fact {
-  id: string;
   created_at: string;
-  deal_id: string;
-  fact_type: FactType;
-  topic: string;
-  value_json: any;
-  confidence: number;
-  evidence_chunk_ids: string[];
-  source_document_ids: string[];
-  created_by_run_id: string | null;
 }
 
-export interface CanonicalFact {
-  id: string;
+export interface CategoryScore {
+  deal_id: string;
+  category_id: number;
+  score: number;
+  rationale: string;
+  strengths: string[];
+  risks: string[];
   created_at: string;
-  updated_at: string;
-  deal_id: string;
-  topic: string;
-  merged_value: any;
-  confidence: number;
-  sources: Array<{
-    document_id: string;
-    chunk_ids: string[];
-    weight: number;
-  }>;
 }
 
-export interface DDRun {
+export interface CheckpointResult {
   id: string;
   deal_id: string;
-  started_at: string;
-  finished_at: string | null;
-  status: RunStatus;
-  error_message: string | null;
-  n8n_execution_id: string | null;
-  triggered_by: string | null;
-  input_snapshot: any;
+  checkpoint_id: string;
+  status: CheckpointStatus;
+  confidence: number;
+  rationale: string | null;
+  value: Record<string, any>;
+  created_at: string;
+}
+
+export interface CheckpointEvidence {
+  id: string;
+  deal_id: string;
+  checkpoint_id: string;
+  chunk_id: string;
+  quote: string;
 }
 
 export interface DealScore {
   id: string;
   created_at: string;
-  run_id: string;
   deal_id: string;
   overall_score: number;
   grade: ScoreGrade;
-  category_scores: Array<{
-    category: string;
-    score: number;
-    summary: string;
-    key_risks: string[];
-    key_strengths: string[];
-  }>;
+  category_scores: Record<string, any>;
+}
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export const DEAL_TYPE_LABELS: Record<DealType, string> = {
@@ -198,8 +193,8 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   other: 'Other',
 };
 
-export const DEAL_STATUS_LABELS: Record<DealStatus, string> = {
-  pending: 'Pending',
+export const ANALYSIS_STATUS_LABELS: Record<AnalysisStatus, string> = {
+  draft: 'Draft',
   running: 'Running',
   completed: 'Completed',
   failed: 'Failed',

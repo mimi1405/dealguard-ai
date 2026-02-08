@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Play, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { Deal, DDRun } from '@/lib/types/database';
+import { Deal } from '@/lib/types/database';
 import { formatDistanceToNow } from 'date-fns';
 import { AnalysisStatus } from '../analysis/analysis-status';
 
@@ -17,9 +17,18 @@ interface DDRunManagerProps {
   onRunComplete: () => void;
 }
 
+interface DealRun {
+  id: string;
+  deal_id: string;
+  status: string;
+  started_at: string;
+  finished_at: string | null;
+  n8n_execution_id: string | null;
+}
+
 export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps) {
   const supabase = createClient();
-  const [runs, setRuns] = useState<DDRun[]>([]);
+  const [runs, setRuns] = useState<DealRun[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,14 +41,23 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
   const fetchRuns = async () => {
     try {
       const { data, error } = await supabase
-        .from('dd_runs')
-        .select('*')
-        .eq('deal_id', dealId)
-        .order('started_at', { ascending: false })
-        .limit(10);
+        .from('deals')
+        .select('id, analysis_status, created_at, updated_at')
+        .eq('id', dealId)
+        .maybeSingle();
 
       if (error) throw error;
-      setRuns(data || []);
+      if (data) {
+        const run = {
+          id: data.id,
+          deal_id: dealId,
+          status: data.analysis_status,
+          started_at: data.updated_at,
+          finished_at: data.analysis_status === 'completed' ? data.updated_at : null,
+          n8n_execution_id: null,
+        };
+        setRuns([run]);
+      }
     } catch (err: any) {
       console.error('Error fetching runs:', err);
     }
@@ -51,24 +69,6 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
 
     try {
       const runId = crypto.randomUUID();
-      const inputSnapshot = {
-        name: deal.name,
-        deal_type: deal.deal_type,
-        industry: deal.industry,
-        jurisdiction: deal.jurisdiction,
-        stage: deal.stage,
-        transaction_volume_range: deal.transaction_volume_range,
-      };
-
-      const { error: insertError } = await supabase.from('dd_runs').insert({
-        id: runId,
-        deal_id: dealId,
-        status: 'queued',
-        triggered_by: 'ui',
-        input_snapshot: inputSnapshot,
-      });
-
-      if (insertError) throw insertError;
 
       const response = await fetch('/api/dd/run', {
         method: 'POST',
@@ -215,9 +215,6 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
                             )}s`
                           : 'In progress...'}
                       </div>
-                      {run.error_message && (
-                        <div className="text-sm text-red-500 mt-1">{run.error_message}</div>
-                      )}
                     </div>
                   </div>
                   <Badge variant="outline" className={getStatusColor(run.status)}>

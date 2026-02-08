@@ -43,14 +43,16 @@ export default function NewDealPage() {
   const [error, setError] = useState('');
 
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
+    client_name: '',
     deal_type: '' as DealType | '',
     industry: '',
     jurisdiction: '',
-    confidentiality_level: 'medium' as ConfidentialityLevel,
+    confidentiality: 'medium' as ConfidentialityLevel,
     transaction_volume_range: '' as TransactionVolumeRange | '',
-    stage: '' as DealStage | '',
-    notes: '',
+    target_stage: '' as DealStage | '',
+    thesis: '',
+    website_url: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,14 +62,17 @@ export default function NewDealPage() {
 
     try {
       const dealData: any = {
-        name: formData.name,
+        title: formData.title,
+        client_name: formData.client_name || null,
         deal_type: formData.deal_type,
         industry: formData.industry || null,
         jurisdiction: formData.jurisdiction || null,
-        confidentiality_level: formData.confidentiality_level,
+        confidentiality: formData.confidentiality,
         transaction_volume_range: formData.transaction_volume_range || null,
-        stage: formData.stage || null,
-        notes: formData.notes || null,
+        target_stage: formData.target_stage || null,
+        thesis: formData.thesis || null,
+        website_url: formData.website_url || null,
+        analysis_status: 'draft',
       };
 
       const { data, error } = await supabase.from('deals').insert(dealData).select().single();
@@ -106,15 +111,25 @@ export default function NewDealPage() {
           <CardContent className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="name">
-                  Deal Name <span className="text-destructive">*</span>
+                <Label htmlFor="title">
+                  Deal Title <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="name"
+                  id="title"
                   required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g., TechCo Seed Round Investment"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="client_name">Client Name</Label>
+                <Input
+                  id="client_name"
+                  value={formData.client_name}
+                  onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
+                  placeholder="e.g., ABC Ventures"
                 />
               </div>
 
@@ -141,12 +156,12 @@ export default function NewDealPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="stage">Company Stage</Label>
+                <Label htmlFor="target_stage">Target Stage</Label>
                 <Select
-                  value={formData.stage}
-                  onValueChange={(value) => setFormData({ ...formData, stage: value as DealStage })}
+                  value={formData.target_stage}
+                  onValueChange={(value) => setFormData({ ...formData, target_stage: value as DealStage })}
                 >
-                  <SelectTrigger id="stage">
+                  <SelectTrigger id="target_stage">
                     <SelectValue placeholder="Select stage (optional)" />
                   </SelectTrigger>
                   <SelectContent>
@@ -199,35 +214,46 @@ export default function NewDealPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confidentiality_level">
+                <Label htmlFor="confidentiality">
                   Confidentiality Level <span className="text-destructive">*</span>
                 </Label>
                 <Select
-                  value={formData.confidentiality_level}
-                  onValueChange={(value) => setFormData({ ...formData, confidentiality_level: value as ConfidentialityLevel })}
+                  value={formData.confidentiality}
+                  onValueChange={(value) => setFormData({ ...formData, confidentiality: value as ConfidentialityLevel })}
                   required
                 >
-                  <SelectTrigger id="confidentiality_level">
+                  <SelectTrigger id="confidentiality">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
                   <SelectContent>
                     {CONFIDENTIALITY_LEVELS.map((level) => (
                       <SelectItem key={level} value={level}>
-                        {level}
+                        {level.toUpperCase()}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="website_url">Website URL</Label>
+                <Input
+                  id="website_url"
+                  value={formData.website_url}
+                  onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
+                  placeholder="https://example.com"
+                  type="url"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="thesis">Investment Thesis</Label>
               <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Any notes or comments about this deal..."
+                id="thesis"
+                value={formData.thesis}
+                onChange={(e) => setFormData({ ...formData, thesis: e.target.value })}
+                placeholder="Describe your investment thesis and key focus areas..."
                 rows={4}
               />
             </div>

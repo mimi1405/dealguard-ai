@@ -13,7 +13,7 @@ import { DocumentUpload } from '@/components/documents/document-upload';
 import { DocumentList } from '@/components/documents/document-list';
 import { DDRunManager } from '@/components/run/dd-run-manager';
 import { ResultsViewer } from '@/components/results/results-viewer';
-import { Deal, DEAL_TYPE_LABELS, DEAL_STATUS_LABELS } from '@/lib/types/database';
+import { Deal, DEAL_TYPE_LABELS } from '@/lib/types/database';
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -95,14 +95,14 @@ export default function DealDetailPage() {
         </Button>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold">{deal.name}</h1>
+            <h1 className="text-3xl font-bold">{deal.title}</h1>
             <p className="text-muted-foreground mt-2">
               {DEAL_TYPE_LABELS[deal.deal_type]}
               {deal.industry && ` • ${deal.industry}`}
             </p>
           </div>
-          <Badge variant="outline" className={getStatusColor(deal.status)}>
-            {DEAL_STATUS_LABELS[deal.status]}
+          <Badge variant="outline" className={getStatusColor(deal.analysis_status)}>
+            {deal.analysis_status.charAt(0).toUpperCase() + deal.analysis_status.slice(1)}
           </Badge>
         </div>
       </div>

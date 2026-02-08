@@ -42,15 +42,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3) Mark run + deal as running
-    await supabase
-      .from('dd_runs')
-      .update({ status: 'running' })
-      .eq('id', runId);
-
+    // 3) Mark deal as running
     await supabase
       .from('deals')
-      .update({ status: 'running', last_run_id: runId })
+      .update({ analysis_status: 'running' })
       .eq('id', dealId);
 
     // 4) Trigger n8n (minimal contract)
