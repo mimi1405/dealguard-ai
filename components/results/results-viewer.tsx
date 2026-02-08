@@ -109,7 +109,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
     return (
       <div className="flex flex-col items-center justify-center">
         <div className="w-full aspect-square overflow-hidden border border-white/[0.04]">
-          <BrainAnimation particleCount={500000} className="rounded-2xl" />
+          <BrainAnimation progress={20} particleCount={500000} className="rounded-2xl" />
         </div>
         <p className="mt-6 text-xl text-muted-foreground tracking-wide animate-pulse">
           Analyzing documents...
