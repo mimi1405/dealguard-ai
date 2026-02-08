@@ -130,12 +130,18 @@ export function BrainAnimation({
 
   return (
     <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
-      {/* Canvas Host */}
+      {/* WICHTIG: HIER muss das ref dran, sonst wird nie gemountet */}
       <div ref={containerRef} className="absolute inset-0" />
 
-      {/* Status unter der Animation */}
-      <div className="absolute left-0 right-0 bottom-6 flex justify-center pointer-events-none">
-        <AnalysisStatus progress={progress} />
+      {/* Status overlay */}
+      <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
+        {/* falls du AnalysisStatus nutzt */}
+        {/* <AnalysisStatus progress={progress} /> */}
+
+        {/* oder erstmal testweise: */}
+        <span className="text-xs tracking-widest text-white/30 uppercase">
+          Analyzing
+        </span>
       </div>
     </div>
   );
