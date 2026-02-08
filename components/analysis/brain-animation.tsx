@@ -129,20 +129,17 @@ export function BrainAnimation({
   }
 
   return (
-    <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
-      {/* WICHTIG: HIER muss das ref dran, sonst wird nie gemountet */}
-      <div ref={containerRef} className="absolute inset-0" />
+  <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
+    {/* DAS ist das Mount-Ziel für WebGL */}
+    <div ref={containerRef} className="absolute inset-0" />
 
-      {/* Status overlay */}
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
-        {/* falls du AnalysisStatus nutzt */}
-        {/* <AnalysisStatus progress={progress} /> */}
-
-        {/* oder erstmal testweise: */}
-        <span className="text-xs tracking-widest text-white/30 uppercase">
-          Analyzing
-        </span>
-      </div>
+    {/* Status Overlay */}
+    <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
+      <span className="text-xs tracking-widest text-white/30 uppercase">
+        Analyzing
+      </span>
+      {/* später hier: <AnalysisStatus progress={progress} /> */}
     </div>
-  );
+  </div>
+);
 }
