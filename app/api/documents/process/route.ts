@@ -118,8 +118,6 @@ export async function POST(req: Request) {
 
     const payload = { deal_id, document_id };
 
-    console.log("[process] Triggering n8n chunking:", { url: n8nUrl, payload });
-
     const response = await triggerN8nWithRetry(n8nUrl, payload);
 
     if (!response.ok) {
