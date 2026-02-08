@@ -127,17 +127,4 @@ export function BrainAnimation({
       </div>
     );
   }
-
-  return (
-  <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
-    {/* DAS ist das Mount-Ziel für WebGL */}
-    <div ref={containerRef} className="absolute inset-0" />
-
-    {/* Status Overlay */}
-    <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
-      <AnalysisStatus progress={progress} />
-      {/* später hier: <AnalysisStatus progress={progress} /> */}
-    </div>
-  </div>
-);
 }
