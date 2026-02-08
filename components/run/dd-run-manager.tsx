@@ -199,7 +199,6 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
                   </span>
                 </div>
               </div>
-              <AnalysisPanel show={true} />
             </div>
           )}
         </CardContent>
