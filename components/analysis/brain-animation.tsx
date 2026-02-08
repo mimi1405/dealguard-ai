@@ -135,9 +135,7 @@ export function BrainAnimation({
 
     {/* Status Overlay */}
     <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
-      <span className="text-xs tracking-widest text-white/30 uppercase">
-        Analyzing
-      </span>
+      <AnalysisStatus progress={progress} />
       {/* später hier: <AnalysisStatus progress={progress} /> */}
     </div>
   </div>
