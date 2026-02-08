@@ -125,7 +125,6 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
     <div className="space-y-6">
       {latestScore && (
         <>
-          <AnalysisOverlay show={true} progress={progress} />
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
