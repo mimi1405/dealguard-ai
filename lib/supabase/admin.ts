@@ -12,8 +12,7 @@ export const createAdminClient = () => {
   return createClient(supabaseUrl, supabaseKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: true,
-      detectSessionInUrl: true,
+  persistSession: false,
     },
   });
 };
