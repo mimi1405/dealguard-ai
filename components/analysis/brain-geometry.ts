@@ -101,6 +101,20 @@ export function generateBrainPoints(count: number): BrainGeometryData {
       const cortexBias = 0.55 + 0.45 * Math.max(0, ny); // oben mehr Struktur
       d += f * cortexBias;
 
+      // Cortex-Falten
+      const f = fold(nx, ny, nz);
+      const cortexBias = 0.55 + 0.45 * Math.max(0, ny);
+      d += f * cortexBias;
+      
+      // >>> HIER BEGINNT DAS NEUE SHELL-SAMPLING <<<
+      
+      // mehr Punkte an der Oberfläche (Cortex-Shell)
+      const shell = Math.pow(Math.random(), 1.8); 
+      // d ≈ 0 innen, ≈ 1 außen
+      if (d < 0.35 + 0.45 * (1 - shell)) continue;
+      
+      // >>> HIER ENDET DAS NEUE SHELL-SAMPLING <<<
+      
       if (d > 1.0) continue;
 
       // Unterseite flacher: Gehirn ist unten nicht rund wie ein Ball
