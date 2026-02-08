@@ -1,128 +1,127 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-interface AnalysisStatusProps {
-  progress?: number;
+type AnalysisStatusProps = {
+  progress?: number; // 0..1 optional
   className?: string;
-}
+};
 
-const STATUS_MESSAGES = [
+const DEFAULT_MESSAGES = [
   'Analyzing documents',
   'Checking risk factors',
   'Computing signals',
   'Validating assumptions',
   'Finalizing analysis',
-] as const;
+];
 
-const getMessageFromProgress = (progress: number): string => {
-  if (progress < 0.25) return STATUS_MESSAGES[0];
-  if (progress < 0.5) return STATUS_MESSAGES[1];
-  if (progress < 0.75) return STATUS_MESSAGES[2];
-  if (progress < 0.92) return STATUS_MESSAGES[3];
-  return STATUS_MESSAGES[4];
-};
+function pickMessageByProgress(progress: number) {
+  if (progress < 0.25) return DEFAULT_MESSAGES[0];
+  if (progress < 0.5) return DEFAULT_MESSAGES[1];
+  if (progress < 0.75) return DEFAULT_MESSAGES[2];
+  if (progress < 0.92) return DEFAULT_MESSAGES[3];
+  return DEFAULT_MESSAGES[4];
+}
 
 export function AnalysisStatus({ progress, className }: AnalysisStatusProps) {
-  const [displayText, setDisplayText] = useState('');
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [isVisible, setIsVisible] = useState(true);
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  const messageIndexRef = useRef(0);
-  const charIndexRef = useRef(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(motionQuery.matches);
-
-    const handleMotionChange = (e: MediaQueryListEvent) => {
-      setReducedMotion(e.matches);
-    };
-
-    motionQuery.addEventListener('change', handleMotionChange);
-    return () => motionQuery.removeEventListener('change', handleMotionChange);
+  const reducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }, []);
 
+  const controlled = typeof progress === 'number';
+
+  const [activeMessage, setActiveMessage] = useState<string>(
+    controlled ? pickMessageByProgress(progress!) : DEFAULT_MESSAGES[0]
+  );
+  const [typed, setTyped] = useState<string>(reducedMotion ? activeMessage : '');
+  const [visible, setVisible] = useState(true);
+
+  const timeouts = useRef<number[]>([]);
+  const clearAll = () => {
+    timeouts.current.forEach((t) => window.clearTimeout(t));
+    timeouts.current = [];
+  };
+
+  // Update message either by progress or by timed rotation
   useEffect(() => {
-    const isProgressMode = progress !== undefined;
+    if (reducedMotion) return;
 
-    const startNewMessage = (message: string) => {
-      if (currentMessage === message) return;
+    clearAll();
 
-      if (process.env.NODE_ENV === 'development') {
-        console.debug('[AnalysisStatus] Message changed:', message);
-      }
-
-      setCurrentMessage(message);
-      charIndexRef.current = 0;
-      setDisplayText('');
-      setIsVisible(true);
-
-      if (reducedMotion) {
-        setDisplayText(message);
-        return;
-      }
-
-      const typewriterDelay = Math.floor(Math.random() * 20) + 25;
-
-      const typeNextChar = () => {
-        if (charIndexRef.current < message.length) {
-          setDisplayText(message.slice(0, charIndexRef.current + 1));
-          charIndexRef.current++;
-          timeoutRef.current = setTimeout(typeNextChar, typewriterDelay);
-        } else {
-          timeoutRef.current = setTimeout(() => {
-            setIsVisible(false);
-            timeoutRef.current = setTimeout(() => {
-              if (!isProgressMode) {
-                messageIndexRef.current = (messageIndexRef.current + 1) % STATUS_MESSAGES.length;
-                startNewMessage(STATUS_MESSAGES[messageIndexRef.current]);
-              }
-            }, 300);
-          }, 900);
-        }
-      };
-
-      typeNextChar();
-    };
-
-    if (isProgressMode) {
-      const message = getMessageFromProgress(progress);
-      startNewMessage(message);
-    } else {
-      startNewMessage(STATUS_MESSAGES[messageIndexRef.current]);
-
-      if (!reducedMotion) {
-        intervalRef.current = setInterval(() => {
-          messageIndexRef.current = (messageIndexRef.current + 1) % STATUS_MESSAGES.length;
-        }, 2200);
-      }
+    if (controlled) {
+      setActiveMessage(pickMessageByProgress(progress!));
+      return;
     }
 
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+    // timed rotation
+    let i = 0;
+    const rotate = () => {
+      i = (i + 1) % DEFAULT_MESSAGES.length;
+      setActiveMessage(DEFAULT_MESSAGES[i]);
+
+      const t = window.setTimeout(rotate, 2200);
+      timeouts.current.push(t);
     };
-  }, [progress, reducedMotion, currentMessage]);
+
+    const t0 = window.setTimeout(rotate, 2200);
+    timeouts.current.push(t0);
+
+    return clearAll;
+  }, [controlled, progress, reducedMotion]);
+
+  // Typewriter when activeMessage changes
+  useEffect(() => {
+    if (reducedMotion) {
+      setTyped(activeMessage);
+      return;
+    }
+
+    clearAll();
+    setVisible(true);
+    setTyped('');
+
+    const baseMin = 25;
+    const baseMax = 45;
+
+    for (let i = 1; i <= activeMessage.length; i++) {
+      const delay = i * (baseMin + Math.random() * (baseMax - baseMin));
+      const t = window.setTimeout(() => {
+        setTyped(activeMessage.slice(0, i));
+      }, delay);
+      timeouts.current.push(t);
+    }
+
+    // small idle then fade (only in timed mode)
+    if (!controlled) {
+      const doneDelay = activeMessage.length * 35 + 1200;
+      const tFade = window.setTimeout(() => setVisible(false), doneDelay);
+      timeouts.current.push(tFade);
+
+      const tShow = window.setTimeout(() => setVisible(true), doneDelay + 250);
+      timeouts.current.push(tShow);
+    }
+
+    return clearAll;
+  }, [activeMessage, controlled, reducedMotion]);
 
   return (
-  <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
-    {/* Canvas */}
-    <div ref={containerRef} className="absolute inset-0 z-0" />
-
-    {/* Status */}
-    <div className="absolute bottom-8 left-0 right-0 z-10 flex justify-center pointer-events-none">
-      <AnalysisStatus progress={progress} />
+    <div
+      className={[
+        'min-h-[16px] text-xs uppercase tracking-[0.12em] text-white/35',
+        'transition-opacity duration-300',
+        visible ? 'opacity-100' : 'opacity-0',
+        className ?? '',
+      ].join(' ')}
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {typed}
+      {!reducedMotion && (
+        <span className="inline-block w-[0.6ch] animate-pulse align-baseline">
+          ▍
+        </span>
+      )}
     </div>
-  </div>
-);
+  );
 }
