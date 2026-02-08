@@ -20,154 +20,149 @@ export interface BrainGeometryData {
   nearestSeedIndex: Int32Array;
 }
 
+/**
+ * Generates a brain-ish point cloud:
+ * - Two hemispheres with a soft midline (no harsh "cutter" line)
+ * - Surface-biased sampling (cortex shell) so it doesn't look like a ball
+ * - Adds a small cerebellum + brainstem to avoid pure sphere silhouette
+ */
 export function generateBrainPoints(count: number): BrainGeometryData {
   const positions = new Float32Array(count * 3);
   const baseAlphas = new Float32Array(count);
   const surfaceFactors = new Float32Array(count);
+
   let idx = 0;
 
-  // Hauptskalen (Gehirn ist nicht kugelig)
-  const scaleX = 1.15;
+  // Main brain proportions (not spherical)
+  const scaleX = 1.18;
   const scaleY = 0.82;
-  const scaleZ = 0.95;
+  const scaleZ = 0.98;
 
-  // Hemisphären-Einstellung
-  const hemiSeparation = 0.10; // Abstand/Grenze in der Mitte (mehr = klarer Split)
-  const midGap = 0.035;        // harte "No-Points" Zone in der Mitte
+  // Hemisphere shaping
+  const hemiShift = 0.12; // pushes points left/right
+  const midNoPoints = 0.03; // avoids "ball with a line"
 
-  // Cerebellum / Brainstem
-  const cerebZ = -0.65;
-  const cerebY = -0.35;
-  const cerebScale = { x: 0.55, y: 0.45, z: 0.45 };
+  // Cerebellum / Brainstem params
+  const cerebCenter = { x: 0.0, y: -0.38, z: -0.70 };
+  const cerebScale = { x: 0.62, y: 0.42, z: 0.46 };
 
-  const stemZ = -0.20;
-  const stemY = -0.85;
-  const stemScale = { x: 0.16, y: 0.35, z: 0.16 };
+  const stemCenter = { x: 0.0, y: -0.86, z: -0.22 };
+  const stemScale = { x: 0.18, y: 0.34, z: 0.18 };
 
-  // Helper: “Fold noise” ohne Perlin – simpel aber effektiv für Punkt-Verteilung
-  const fold = (x: number, y: number, z: number) => {
-    // Mehr Falten im Cortex (oben/außen) als unten
-    const a = Math.sin(x * 10 + z * 6) * 0.06;
-    const b = Math.sin(y * 14 + x * 4) * 0.05;
-    const c = Math.sin(z * 12 + y * 5) * 0.05;
+  // Simple "fold" function to create sulci-like gaps (cheap, no noise lib)
+  const fold = (nx: number, ny: number, nz: number) => {
+    const a = Math.sin(nx * 10 + nz * 6) * 0.055;
+    const b = Math.sin(ny * 14 + nx * 4) * 0.045;
+    const c = Math.sin(nz * 12 + ny * 5) * 0.045;
     return a + b + c;
   };
 
   while (idx < count) {
-    // 70% Cortex, 20% Cerebellum, 10% Brainstem
-    const r = Math.random();
+    const bucket = Math.random();
 
-    let x = 0, y = 0, z = 0;
+    let x = 0;
+    let y = 0;
+    let z = 0;
 
-    if (r < 0.70) {
-      // ---- Cortex (Hemisphären) ----
-      x = (Math.random() - 0.5) * 2.4;
-      y = (Math.random() - 0.5) * 2.2;
-      z = (Math.random() - 0.5) * 2.3;
+    // 72% cortex, 18% cerebellum, 10% brainstem
+    if (bucket < 0.72) {
+      // --- Cortex / hemispheres ---
+      x = (Math.random() - 0.5) * 2.35;
+      y = (Math.random() - 0.5) * 2.15;
+      z = (Math.random() - 0.5) * 2.25;
 
-      // leichte Asymmetrie + "Front" mehr Volumen
-      z *= z > 0 ? 1.05 : 0.95;
-      x *= 1.0 + (z > 0 ? 0.03 : -0.02);
+      // Slight frontal bias (more volume towards front)
+      z *= z > 0 ? 1.06 : 0.95;
 
-      // Hemisphären: verschiebe Punkte weg von der Mitte
-      const side = x >= 0 ? 1 : -1;
-      x += side * hemiSeparation;
+      // Hemisphere push
+      x += (x >= 0 ? 1 : -1) * hemiShift;
 
-      // harte Mittellinie ausdünnen (sonst wirkt’s wie “Ball mit Linie”)
-      // organische Mittelfurche statt gerader Linie
-      const wave = 0.012 * Math.sin(y * 7.0) + 0.010 * Math.sin(z * 5.0);
-      const gap = midGap + wave;
-      
-      // oben stärker trennen, unten weniger
-      const topBias = Math.max(0, Math.min(1, (y + 0.2) / 0.9)); // ~0 unten, ~1 oben
-      const dynamicGap = gap * (0.4 + 0.9 * topBias);
-      
-      if (Math.abs(x) < dynamicGap) continue;
+      // Avoid harsh midline "stroke"
+      if (Math.abs(x) < midNoPoints && y > 0.0) continue;
 
-      // Super-ellipsoid (Form) + “Falten”-Gate
       const nx = x / scaleX;
       const ny = y / scaleY;
       const nz = z / scaleZ;
 
-      // Grundform
+      // Super-ellipsoid base shape
       let d =
-        Math.pow(Math.abs(nx), 2.2) +
+        Math.pow(Math.abs(nx), 2.25) +
         Math.pow(Math.abs(ny), 2.35) +
         Math.pow(Math.abs(nz), 2.2);
 
-      // Cortex-Falten: wir machen es so, dass gewisse Bereiche “ausgeschnitten” werden
-      // -> dadurch entstehen Sulci-ähnliche Rillen in der Punktwolke
+      // Add folds -> removes some points in sulci-like pattern
       const f = fold(nx, ny, nz);
-      const cortexBias = 0.55 + 0.45 * Math.max(0, ny); // oben mehr Struktur
+      const cortexBias = 0.55 + 0.45 * Math.max(0, ny); // more folds on top
       d += f * cortexBias;
 
-      // Cortex-Falten
-      const f = fold(nx, ny, nz);
-      const cortexBias = 0.55 + 0.45 * Math.max(0, ny);
-      d += f * cortexBias;
-      
-      // >>> HIER BEGINNT DAS NEUE SHELL-SAMPLING <<<
-      
-      // mehr Punkte an der Oberfläche (Cortex-Shell)
-      const shell = Math.pow(Math.random(), 1.8); 
-      // d ≈ 0 innen, ≈ 1 außen
-      if (d < 0.35 + 0.45 * (1 - shell)) continue;
-      
-      // >>> HIER ENDET DAS NEUE SHELL-SAMPLING <<<
-      
       if (d > 1.0) continue;
 
-      // Unterseite flacher: Gehirn ist unten nicht rund wie ein Ball
-      if (y < -0.58 && Math.random() > 0.12) continue;
+      // --- Surface biased sampling (shell) ---
+      // This makes it look like cortex rather than a solid ball.
+      // d is smaller inside, ~1 near the surface.
+      const shell = Math.pow(Math.random(), 2.2); // higher exponent => more surface points
+      const minD = 0.55 + 0.35 * (1 - shell);
+      if (d < minD) continue;
 
-      // Seitliche “Kerben” für Temporallappen/Einzüge
-      if (y < -0.15 && Math.abs(x) > 0.9 && z > -0.2 && Math.random() > 0.55) continue;
-    } else if (r < 0.90) {
-      // ---- Cerebellum (unten hinten, kleiner, “körniger”) ----
+      // Flatten underside a bit (brains aren't spherical below)
+      if (y < -0.60 && Math.random() > 0.15) continue;
+
+      // Soft temporal indentation
+      if (y < -0.15 && Math.abs(x) > 0.95 && z > -0.15 && Math.random() > 0.55) continue;
+
+      // A softer longitudinal fissure (not a straight cut)
+      if (y > 0.05) {
+        const wobble = 0.015 * Math.sin(z * 8.0) + 0.01 * Math.sin(y * 10.0);
+        const groove = 0.10 * Math.exp(-Math.pow((y - 0.35) / 0.28, 2)) + wobble;
+        if (Math.abs(x) < 0.08 && Math.abs(x) < groove) continue;
+      }
+    } else if (bucket < 0.90) {
+      // --- Cerebellum (small, back-lower) ---
       x = (Math.random() - 0.5) * 2.0 * cerebScale.x;
       y = (Math.random() - 0.5) * 2.0 * cerebScale.y;
       z = (Math.random() - 0.5) * 2.0 * cerebScale.z;
 
-      // positionieren
-      x *= 1.05;
-      y = y + cerebY;
-      z = z + cerebZ;
+      x += cerebCenter.x;
+      y += cerebCenter.y;
+      z += cerebCenter.z;
 
-      // ellipsoid
-      const nx = x / cerebScale.x;
-      const ny = (y - cerebY) / cerebScale.y;
-      const nz = (z - cerebZ) / cerebScale.z;
+      const nx = (x - cerebCenter.x) / cerebScale.x;
+      const ny = (y - cerebCenter.y) / cerebScale.y;
+      const nz = (z - cerebCenter.z) / cerebScale.z;
 
       let d = nx * nx + ny * ny + nz * nz;
 
-      // “Kleinhirn-Furchen”: stärker gerillt (kleine, häufige Falten)
-      const g = Math.sin(nx * 18 + nz * 16) * 0.05 + Math.sin(ny * 22) * 0.03;
-      d += g;
+      // cerebellum folds (tighter, more frequent)
+      d += Math.sin(nx * 18 + nz * 16) * 0.05 + Math.sin(ny * 22) * 0.03;
 
       if (d > 1.0) continue;
+
+      // also surface-biased here, but weaker
+      if (d < 0.55 + 0.25 * Math.random()) continue;
     } else {
-      // ---- Brainstem (kleiner Stiel) ----
+      // --- Brainstem (thin stalk) ---
       x = (Math.random() - 0.5) * 2.0 * stemScale.x;
       y = (Math.random() - 0.5) * 2.0 * stemScale.y;
       z = (Math.random() - 0.5) * 2.0 * stemScale.z;
 
-      // positionieren (leicht nach hinten)
-      y = y + stemY;
-      z = z + stemZ;
+      x += stemCenter.x;
+      y += stemCenter.y;
+      z += stemCenter.z;
 
-      const nx = x / stemScale.x;
-      const ny = (y - stemY) / stemScale.y;
-      const nz = (z - stemZ) / stemScale.z;
+      const nx = (x - stemCenter.x) / stemScale.x;
+      const ny = (y - stemCenter.y) / stemScale.y;
+      const nz = (z - stemCenter.z) / stemScale.z;
 
       const d = nx * nx + ny * ny + nz * nz;
       if (d > 1.0) continue;
     }
 
+    // Write point
     positions[idx * 3] = x;
     positions[idx * 3 + 1] = y;
     positions[idx * 3 + 2] = z;
 
-    // Alpha: außen heller
+    // "surface factor" used for gating/glow; keep it simple & stable
     const surf = Math.min(1, Math.abs(x) * 0.25 + Math.abs(y) * 0.35 + Math.abs(z) * 0.25);
     baseAlphas[idx] = 0.15 + Math.random() * 0.85;
     surfaceFactors[idx] = surf;
@@ -182,10 +177,12 @@ export function generateBrainPoints(count: number): BrainGeometryData {
 export function generateActivationSeeds(count: number): ActivationSeed[] {
   const clamped = Math.min(count, MAX_SEEDS);
   const seeds: ActivationSeed[] = [];
+
   for (let i = 0; i < clamped; i++) {
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
     const r = Math.random() * 0.7;
+
     seeds.push({
       position: {
         x: r * Math.sin(phi) * Math.cos(theta),
@@ -197,6 +194,7 @@ export function generateActivationSeeds(count: number): ActivationSeed[] {
       radius: 0.15 + Math.random() * 0.2,
     });
   }
+
   return seeds;
 }
 
@@ -212,6 +210,7 @@ export function packSeedsToUniforms(seeds: ActivationSeed[]): {
     seedPositions[i * 3] = s.position.x;
     seedPositions[i * 3 + 1] = s.position.y;
     seedPositions[i * 3 + 2] = s.position.z;
+
     seedParams[i * 3] = s.phase;
     seedParams[i * 3 + 1] = s.speed;
     seedParams[i * 3 + 2] = s.radius;
