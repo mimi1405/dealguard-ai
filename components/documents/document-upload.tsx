@@ -149,23 +149,47 @@ export function DocumentUpload({ dealId, onUploadComplete }: DocumentUploadProps
 
       const { error: dbError } = await supabase.from("documents").insert(documentData);
 
-      if (dbError) {
-        if (uploadedFilePath) {
-          await supabase.storage
-            .from("dealguard-docs")
-            .remove([uploadedFilePath])
-            .catch((cleanupErr) => {
-              console.error("Failed to cleanup orphaned file:", cleanupErr);
-            });
+if (dbError) {
+  if (uploadedFilePath) {
+    await supabase.storage
+      .from("dealguard-docs")
+      .remove([uploadedFilePath])
+      .catch((cleanupErr) => {
+        console.error("Failed to cleanup orphaned file:", cleanupErr);
+      });
+  }
+  throw dbError;
+}
+
+      // ✅ NEW: Trigger processing (chunk/extract) via your API route
+      setProgress(90);
+
+      const processRes = await fetch("/api/documents/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId, dealId }),
+      });
+      
+      if (!processRes.ok) {
+        let msg = `Failed to start processing (${processRes.status})`;
+        try {
+          const data = await processRes.json();
+          if (data?.error) msg = data.error;
+        } catch {
+          // ignore
         }
-        throw dbError;
+      
+        // optional: cleanup the uploaded file too (depends on your preference)
+        // await supabase.storage.from("dealguard-docs").remove([storagePath]).catch(() => {});
+        throw new Error(msg);
       }
-
+      
       setProgress(100);
-
+      
       setFile(null);
       setCategory("");
       onUploadComplete();
+
     } catch (err: any) {
       console.error("Upload error:", err);
       setError(err?.message ?? "Failed to upload document");
