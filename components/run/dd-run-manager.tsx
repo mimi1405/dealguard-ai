@@ -1,7 +1,7 @@
 // components/run/dd-run-manager.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,14 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Play,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  RefreshCw,
-  FileText,
-} from "lucide-react";
+import { Play, Clock, CheckCircle, AlertCircle, RefreshCw, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Deal } from "@/lib/types/database";
 import { formatDistanceToNow } from "date-fns";
@@ -50,15 +43,15 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
   const [checkingDocs, setCheckingDocs] = useState(true);
 
   useEffect(() => {
-    fetchRunsAndReadiness();
-    const interval = setInterval(fetchRunsAndReadiness, 5000);
+    fetchState();
+    const interval = setInterval(fetchState, 5000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dealId]);
 
-  const fetchRunsAndReadiness = async () => {
+  const fetchState = async () => {
     try {
-      // Deal status (analysis_status)
+      // Deal status is the single source of truth for run state
       const { data, error } = await supabase
         .from("deals")
         .select("id, analysis_status, created_at, updated_at")
@@ -79,7 +72,6 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
         setRuns([run]);
       }
 
-      // Readiness: at least one chunked document
       setCheckingDocs(true);
       const { data: chunkedDoc, error: docErr } = await supabase
         .from("documents")
@@ -96,7 +88,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
         setHasChunkedDoc(!!chunkedDoc);
       }
     } catch (err: any) {
-      console.error("Error fetching runs/readiness:", err);
+      console.error("Error fetching run state:", err);
     } finally {
       setCheckingDocs(false);
     }
@@ -107,12 +99,10 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
     setLoading(true);
 
     try {
-      const runId = crypto.randomUUID();
-
       const response = await fetch("/api/dd/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dealId, runId }),
+        body: JSON.stringify({ dealId }),
       });
 
       if (!response.ok) {
@@ -120,7 +110,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
         throw new Error(data.error || "Failed to trigger run");
       }
 
-      await fetchRunsAndReadiness();
+      await fetchState();
       onRunComplete();
     } catch (err: any) {
       setError(err?.message || "Failed to trigger due diligence run");
@@ -143,7 +133,6 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
   };
 
   const currentRun = runs.find((r) => r.status === "running");
-
   const canTrigger = !loading && !currentRun && hasChunkedDoc && !checkingDocs;
 
   return (
@@ -152,7 +141,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
         <CardHeader>
           <CardTitle>Trigger Due Diligence Analysis</CardTitle>
           <CardDescription>
-            Start an AI-powered analysis workflow via n8n. The system will extract facts, analyze documents, and generate scores.
+            Start an AI-powered analysis workflow via n8n. n8n is the source of truth for run status.
           </CardDescription>
         </CardHeader>
 
