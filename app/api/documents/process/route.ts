@@ -57,12 +57,12 @@ export async function POST(req: Request) {
     if (doc.status !== "extracting" && doc.status !== "chunked") {
       const { error: updErr } = await supabase
         .from("documents")
-        .update({ status: "extracting" })
+        .update({ status: "uploaded" })
         .eq("id", document_id);
 
       if (updErr) {
         return NextResponse.json(
-          { error: "Failed to set status extracting", details: updErr.message },
+          { error: "Failed to set status uploaded", details: updErr.message },
           { status: 500 }
         );
       }
@@ -70,6 +70,9 @@ export async function POST(req: Request) {
 
     // 3) Trigger n8n (expects deal_id + document_id)
     const n8nUrl = process.env.N8N_CHUNK_WEBHOOK_URL;
+
+    console.log("[process] triggering n8n", n8nUrl);
+    
     if (!n8nUrl) {
       return NextResponse.json(
         { error: "N8N_CHUNK_WEBHOOK_URL is not configured" },
