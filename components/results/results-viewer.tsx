@@ -306,8 +306,8 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
       <div className="p-4 bg-neutral-900 text-white">
         <input
           type="range"
-          min={0}
-          max={100}
+          min={0.0}
+          max={1}
           value={progress * 100}
           onChange={(e) => setProgress(Number(e.target.value) / 100)}
           className="w-full"
