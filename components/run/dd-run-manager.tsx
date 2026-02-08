@@ -16,7 +16,7 @@ import { Play, Clock, CheckCircle, AlertCircle, RefreshCw, FileText } from "luci
 import { createClient } from "@/lib/supabase/client";
 import { Deal } from "@/lib/types/database";
 import { formatDistanceToNow } from "date-fns";
-import { AnalysisOverlay } from "../analysis/analysis-overlay";
+import { AnalysisPanel } from "../analysis/analysis-panel";
 
 interface DDRunManagerProps {
   dealId: string;
@@ -199,7 +199,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
                   </span>
                 </div>
               </div>
-              <AnalysisOverlay show={true} />
+              <AnalysisPanel show={true} />
             </div>
           )}
         </CardContent>
