@@ -125,6 +125,9 @@ export function BrainAnimation({
   }
 
   return (
-    <div ref={containerRef} className={w-full h-full bg-[#0b0d10] ${className ?? ''}} /><div ref={containerRef} className={w-full h-full bg-[#0b0d10] ${className ?? ''}} />
+    <div
+      
+      className={`w-full h-full bg-[#0b0d10] ${className ?? ''}`}
+    />
   );
 }
