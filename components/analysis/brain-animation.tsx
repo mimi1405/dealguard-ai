@@ -92,7 +92,7 @@ export function BrainAnimation({
   if (!webglSupported) {
     return (
       <div
-        className={`flex flex-col items-center justify-center bg-[#0b0d10] gap-4 ${className ?? ''}`}
+        className={`flex flex-col items-center justify-center gap-4 ${className ?? ''}`}
       >
         <div className="relative flex items-center justify-center">
           <svg
