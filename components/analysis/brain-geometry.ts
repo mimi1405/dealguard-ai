@@ -74,7 +74,15 @@ export function generateBrainPoints(count: number): BrainGeometryData {
       x += side * hemiSeparation;
 
       // harte Mittellinie ausdünnen (sonst wirkt’s wie “Ball mit Linie”)
-      if (Math.abs(x) < midGap && y > -0.2) continue;
+      // organische Mittelfurche statt gerader Linie
+      const wave = 0.012 * Math.sin(y * 7.0) + 0.010 * Math.sin(z * 5.0);
+      const gap = midGap + wave;
+      
+      // oben stärker trennen, unten weniger
+      const topBias = Math.max(0, Math.min(1, (y + 0.2) / 0.9)); // ~0 unten, ~1 oben
+      const dynamicGap = gap * (0.4 + 0.9 * topBias);
+      
+      if (Math.abs(x) < dynamicGap) continue;
 
       // Super-ellipsoid (Form) + “Falten”-Gate
       const nx = x / scaleX;
