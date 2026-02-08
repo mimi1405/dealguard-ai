@@ -93,18 +93,38 @@ export function BrainAnimation({
     }
   }, [isControlled, progress]);
 
+  if (!webglSupported) {
+    return (
+      <div
+        className={`flex flex-col items-center justify-center bg-[#0b0d10] gap-4 ${className ?? ''}`}
+      >
+        <div className="relative flex items-center justify-center">
+          <svg
+            className="h-16 w-16 animate-spin"
+            viewBox="0 0 64 64"
+            fill="none"
+            style={{ animationDuration: '3s' }}
+          >
+            <circle
+              cx="32"
+              cy="32"
+              r="28"
+              stroke="rgba(255,255,255,0.06)"
+              strokeWidth="2"
+            />
+            <path
+              d="M32 4 a28 28 0 0 1 28 28"
+              stroke="rgba(255,255,255,0.25)"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <div className="absolute h-2 w-2 rounded-full bg-white/20" />
+        </div>
 
-
-  return (
-  <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
-    {/* DAS ist das Mount-Ziel für WebGL */}
-    <div ref={containerRef} className="absolute inset-0" />
-
-    {/* Status Overlay */}
-    <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
-      <AnalysisStatus progress={progress} />
-      {/* später hier: <AnalysisStatus progress={progress} /> */}
-    </div>
-  </div>
-);
+        {/* hier war’s schon richtig */}
+        <AnalysisStatus progress={progress} />
+      </div>
+    );
+  }
 }
