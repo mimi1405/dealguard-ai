@@ -116,11 +116,11 @@ export function AnalysisStatus({ progress, className }: AnalysisStatusProps) {
 
   return (
   <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
-    {/* Canvas mount target */}
-    <div ref={containerRef} className="absolute inset-0" />
+    {/* Canvas */}
+    <div ref={containerRef} className="absolute inset-0 z-0" />
 
-    {/* Status overlay */}
-    <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
+    {/* Status */}
+    <div className="absolute bottom-8 left-0 right-0 z-10 flex justify-center pointer-events-none">
       <AnalysisStatus progress={progress} />
     </div>
   </div>
