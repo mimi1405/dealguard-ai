@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3) Trigger n8n (ONLY deal_id)
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL_TEST;
     if (!n8nWebhookUrl) {
       return NextResponse.json(
         { error: "N8N_WEBHOOK_URL is not configured" },
