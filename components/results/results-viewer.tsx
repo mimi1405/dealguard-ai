@@ -215,5 +215,5 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
 
     
      
-  );
+
 }
