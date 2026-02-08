@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 const MINDSTUDIO_API_KEY = process.env.MINDSTUDIO_API_KEY;
 const DEALGUARD_AGENT_ID = process.env.DEALGUARD_AGENT_ID;
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
     }
 
-    const supabase = createServerClient();
+    const supabase = createAdminClient();
 
     const { data: project, error: projectError } = await supabase
       .from('projects')

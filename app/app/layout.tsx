@@ -20,10 +20,11 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    const supabase = createClient();
+
     const getUser = async () => {
       const {
         data: { user },
@@ -31,12 +32,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       setUser(user);
     };
     getUser();
-  }, [supabase]);
+  }, []);
 
   const handleLogout = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login');
-    router.refresh();
   };
 
   const navigation = [

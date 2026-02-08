@@ -49,7 +49,6 @@ export default function SignupPage() {
         if (profileError) throw profileError;
 
         router.push('/app');
-        router.refresh();
       }
     } catch (err: any) {
       setError(err.message || 'Failed to sign up');

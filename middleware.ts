@@ -24,16 +24,16 @@ export async function middleware(req: NextRequest) {
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session && req.nextUrl.pathname.startsWith('/app')) {
+  if (!user && req.nextUrl.pathname.startsWith('/app')) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/login';
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (session && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup')) {
+  if (user && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup')) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/app';
     return NextResponse.redirect(redirectUrl);
@@ -43,5 +43,9 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/app/:path*', '/login', '/signup'],
+  matcher: [
+    '/app/:path*',
+    '/login',
+    '/signup',
+  ],
 };

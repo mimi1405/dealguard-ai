@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
     }
 
-    const supabase = createServerClient();
+    const supabase = createAdminClient();
 
     const { data: analysis, error } = await supabase
       .from('analyses')

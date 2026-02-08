@@ -33,7 +33,6 @@ export default function LoginPage() {
 
       if (data.user) {
         router.push('/app');
-        router.refresh();
       }
     } catch (err: any) {
       setError(err.message || 'Failed to login');
