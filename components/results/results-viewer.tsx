@@ -209,9 +209,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
               </CardContent>
             </Card>
           )}
-          <div className="mt-12">
-        <AnalysisOverlay loading={true} progress={progress}>
-      </div>
+         
         </>
       )}
 
