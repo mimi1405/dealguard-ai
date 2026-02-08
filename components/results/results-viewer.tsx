@@ -308,8 +308,8 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
           type="range"
           min={0.0}
           max={1}
-          value={progress * 100}
-          onChange={(e) => setProgress(Number(e.target.value) / 100)}
+          value={progress * 1}
+          onChange={(e) => setProgress(Number(e.target.value) / 1)}
           className="w-full"
         />
         <div className="mt-2 text-sm opacity-70">
