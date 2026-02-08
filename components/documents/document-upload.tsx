@@ -167,7 +167,7 @@ if (dbError) {
       const processRes = await fetch("/api/documents/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId, dealId }),
+        body: JSON.stringify({ deal_id: dealId, document_id: documentId }),
       });
       
       if (!processRes.ok) {
