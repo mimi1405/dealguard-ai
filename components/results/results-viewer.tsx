@@ -299,6 +299,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
           </Tabs>
         </CardContent>
       </Card>
+      <AnalysisOverlay />
     </div>
   );
 }
