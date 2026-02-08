@@ -187,45 +187,6 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
           )}
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Run History</CardTitle>
-          <CardDescription>Previous due diligence runs for this deal</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {runs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No runs yet. Trigger your first analysis above.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {runs.map((run) => (
-                <div key={run.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    {getStatusIcon(run.status)}
-                    <div>
-                      <div className="font-medium">
-                        {formatDistanceToNow(new Date(run.started_at), { addSuffix: true })}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {run.finished_at
-                          ? `Completed in ${Math.round(
-                              (new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 1000
-                            )}s`
-                          : 'In progress...'}
-                      </div>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className={getStatusColor(run.status)}>
-                    {run.status.toUpperCase()}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
