@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createBrainScene, BrainScene } from './brain-scene';
+import { AnalysisStatus } from './analysis-status';
 
 interface BrainAnimationProps {
   particleCount?: number;
@@ -117,9 +118,7 @@ export function BrainAnimation({
           </svg>
           <div className="absolute h-2 w-2 rounded-full bg-white/20" />
         </div>
-        <span className="text-xs tracking-widest text-white/30 uppercase">
-          Analyzing
-        </span>
+        <AnalysisStatus progress={progress} />
       </div>
     );
   }

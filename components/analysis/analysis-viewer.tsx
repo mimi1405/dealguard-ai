@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Play, RefreshCw, AlertCircle } from 'lucide-react';
+import { AnalysisStatus } from './analysis-status';
 
 interface AnalysisViewerProps {
   projectId: string;
@@ -115,9 +116,10 @@ export function AnalysisViewer({ projectId }: AnalysisViewerProps) {
             <div className="text-center py-8">
               <RefreshCw className="mx-auto h-12 w-12 text-white/70 animate-spin mb-4" />
               <p className="text-lg font-medium mb-2">Analysis in Progress</p>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-4">
                 AI is analyzing your documents. This may take a few minutes...
               </p>
+              <AnalysisStatus className="mt-2" />
             </div>
           )}
 
