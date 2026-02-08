@@ -1,3 +1,4 @@
+// app/api/webhooks/n8n/document-processed/route.ts
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
