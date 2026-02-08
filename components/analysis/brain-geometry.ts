@@ -64,8 +64,8 @@ export function generateBrainPoints(count: number): BrainGeometryData {
     let y = 0;
     let z = 0;
 
-    // 72% cortex, 18% cerebellum, 10% brainstem
-    if (bucket < 0.72) {
+    // 90% cortex, 8% cerebellum, 2% brainstem
+    if (bucket < 0.90) {
       // --- Cortex / hemispheres ---
       x = (Math.random() - 0.5) * 2.35;
       y = (Math.random() - 0.5) * 2.15;
@@ -116,7 +116,7 @@ export function generateBrainPoints(count: number): BrainGeometryData {
         const groove = 0.10 * Math.exp(-Math.pow((y - 0.35) / 0.28, 2)) + wobble;
         if (Math.abs(x) < 0.08 && Math.abs(x) < groove) continue;
       }
-    } else if (bucket < 0.90) {
+    } else if (bucket < 0.98) {
       // --- Cerebellum (small, back-lower) ---
       x = (Math.random() - 0.5) * 2.0 * cerebScale.x;
       y = (Math.random() - 0.5) * 2.0 * cerebScale.y;
