@@ -9,6 +9,7 @@ import { Play, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Deal, DDRun } from '@/lib/types/database';
 import { formatDistanceToNow } from 'date-fns';
+import { AnalysisStatus } from '../analysis/analysis-status';
 
 interface DDRunManagerProps {
   dealId: string;
@@ -166,7 +167,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
           </div>
 
           {currentRun && (
-            <div className="p-4 bg-muted/50 rounded-lg">
+            <div className="p-4 bg-muted/50 rounded-lg space-y-3">
               <div className="text-sm space-y-2">
                 <div>
                   <span className="text-muted-foreground">Started:</span>{' '}
@@ -181,6 +182,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
                   </div>
                 )}
               </div>
+              <AnalysisStatus />
             </div>
           )}
         </CardContent>
