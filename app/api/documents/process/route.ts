@@ -48,7 +48,6 @@ export async function POST(req: Request) {
 
     // ✅ Do NOT touch status here (stays 'uploaded' until n8n changes it)
     const n8nUrl = process.env.N8N_CHUNK_WEBHOOK_URL;
-    console.log(n8nUrl);
     if (!n8nUrl) {
       return NextResponse.json(
         { error: "N8N_CHUNK_WEBHOOK_URL is not configured" },
