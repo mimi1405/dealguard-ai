@@ -303,7 +303,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
         <BrainAnimation progress={progress} />
       </div>
 
-      <div className="p-4 bg-neutral-900 text-white">
+      <div className="p-4 bg-white text-white">
         <input
           type="range"
           min={0.0}
