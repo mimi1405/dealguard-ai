@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type Body = {
-  // allow both styles from client
   dealId?: string;
   documentId?: string;
   deal_id?: string;
@@ -17,8 +16,7 @@ export async function POST(req: Request) {
     const documentIdRaw = body.document_id ?? body.documentId;
 
     const deal_id = typeof dealIdRaw === "string" ? dealIdRaw.trim() : "";
-    const document_id =
-      typeof documentIdRaw === "string" ? documentIdRaw.trim() : "";
+    const document_id = typeof documentIdRaw === "string" ? documentIdRaw.trim() : "";
 
     if (!deal_id || !document_id) {
       return NextResponse.json(
@@ -27,9 +25,8 @@ export async function POST(req: Request) {
       );
     }
 
+    // Optional but good: ensure doc belongs to deal (prevents abuse)
     const supabase = createAdminClient();
-
-    // 1) Validate document belongs to deal
     const { data: doc, error: docErr } = await supabase
       .from("documents")
       .select("id, deal_id, status")
@@ -46,33 +43,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
     if (doc.deal_id !== deal_id) {
-      return NextResponse.json(
-        { error: "Document does not belong to this deal" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Deal mismatch" }, { status: 403 });
     }
 
-    // 2) Set status -> extracting (only this step is done here)
-    // idempotent: if already extracting/extracted, we can skip updating
-    if (doc.status !== "extracting" && doc.status !== "chunked") {
-      const { error: updErr } = await supabase
-        .from("documents")
-        .update({ status: "uploaded" })
-        .eq("id", document_id);
-
-      if (updErr) {
-        return NextResponse.json(
-          { error: "Failed to set status uploaded", details: updErr.message },
-          { status: 500 }
-        );
-      }
-    }
-
-    // 3) Trigger n8n (expects deal_id + document_id)
+    // ✅ Do NOT touch status here (stays 'uploaded' until n8n changes it)
     const n8nUrl = process.env.N8N_CHUNK_WEBHOOK_URL;
-
-    console.log("[process] triggering n8n", n8nUrl);
-    
     if (!n8nUrl) {
       return NextResponse.json(
         { error: "N8N_CHUNK_WEBHOOK_URL is not configured" },
@@ -81,23 +56,21 @@ export async function POST(req: Request) {
     }
 
     const payload = { deal_id, document_id };
-    console.log(payload)
-    console.log(n8nUrl)
-    
+
+    // Helpful debug logs (remove later)
+    console.log("[process] triggering n8n", n8nUrl);
+    console.log("[process] payload", payload);
+
     const r = await fetch(n8nUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // Optional hardening:
-        // "X-Dealguard-Secret": process.env.N8N_WEBHOOK_SECRET ?? "",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
     if (!r.ok) {
-      // Let n8n set failed status (your rule), but we can still return error
+      const text = await r.text().catch(() => "");
       return NextResponse.json(
-        { error: "Failed to trigger n8n", status: r.status },
+        { error: "Failed to trigger n8n", status: r.status, details: text.slice(0, 500) },
         { status: 502 }
       );
     }
