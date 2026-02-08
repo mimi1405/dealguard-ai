@@ -78,7 +78,9 @@ export async function POST(req: Request) {
     }
 
     const payload = { deal_id, document_id };
-
+    console.log(payload)
+    console.log(n8nUrl)
+    
     const r = await fetch(n8nUrl, {
       method: "POST",
       headers: {
