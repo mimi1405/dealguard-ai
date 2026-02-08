@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
     // 2) Set status -> extracting (only this step is done here)
     // idempotent: if already extracting/extracted, we can skip updating
-    if (doc.status !== "extracting" && doc.status !== "extracted") {
+    if (doc.status !== "extracting" && doc.status !== "chunked") {
       const { error: updErr } = await supabase
         .from("documents")
         .update({ status: "extracting" })
