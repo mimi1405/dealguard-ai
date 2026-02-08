@@ -59,6 +59,7 @@ export async function POST(req: Request) {
 
     // Helpful debug logs (remove later)
     console.log("[process] triggering n8n", n8nUrl);
+    console.log(n8nUrl);
     console.log("[process] payload", payload);
 
     const r = await fetch(n8nUrl, {
