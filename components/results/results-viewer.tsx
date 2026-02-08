@@ -40,7 +40,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
   // Set to `true` now so the brain animation is always visible for inspection.
   const [analysisRunning] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0.9);
+  const [progress, setProgress] = useState(1);
 
   useEffect(() => {
     fetchResults();
