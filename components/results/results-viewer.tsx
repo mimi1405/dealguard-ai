@@ -299,7 +299,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
           </Tabs>
         </CardContent>
       </Card>
-      <AnalysisOverlay />
+      <AnalysisOverlay loading={true} />
     </div>
   );
 }
