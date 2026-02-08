@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createBrainScene, BrainScene } from './brain-scene';
+import { AnalysisStatus } from './analysis-status';
 
 interface BrainAnimationProps {
   particleCount?: number;
@@ -27,12 +28,12 @@ export function BrainAnimation({
 
     const tick = () => {
       internalProgressRef.current += 0.0008;
-      if (internalProgressRef.current > 1) {
-        internalProgressRef.current = 0;
-      }
+      if (internalProgressRef.current > 1) internalProgressRef.current = 0;
+
       sceneRef.current?.setProgress(internalProgressRef.current);
       rafRef.current = requestAnimationFrame(tick);
     };
+
     rafRef.current = requestAnimationFrame(tick);
   }, [isControlled]);
 
@@ -54,6 +55,7 @@ export function BrainAnimation({
     brainScene.setReducedMotion(reducedMotion);
 
     let cancelled = false;
+
     if (containerRef.current) {
       brainScene
         .mount(containerRef.current)
@@ -74,17 +76,19 @@ export function BrainAnimation({
     return () => {
       cancelled = true;
       motionQuery.removeEventListener('change', handleMotionChange);
+
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
+
       brainScene.unmount();
       sceneRef.current = null;
     };
   }, [particleCount, animateInternalProgress]);
 
   useEffect(() => {
-    if (isControlled && sceneRef.current) {
+    if (isControlled && sceneRef.current && typeof progress === 'number') {
       sceneRef.current.setProgress(progress);
     }
   }, [isControlled, progress]);
@@ -117,17 +121,22 @@ export function BrainAnimation({
           </svg>
           <div className="absolute h-2 w-2 rounded-full bg-white/20" />
         </div>
-        <span className="text-xs tracking-widest text-white/30 uppercase">
-          Analyzing
-        </span>
+
+        {/* hier war’s schon richtig */}
+        <AnalysisStatus progress={progress} />
       </div>
     );
   }
 
   return (
-    <div
-      
-      className={`w-full h-full bg-[#0b0d10] ${className ?? ''}`}
-    />
+    <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
+      {/* Canvas Host */}
+      <div ref={containerRef} className="absolute inset-0" />
+
+      {/* Status unter der Animation */}
+      <div className="absolute left-0 right-0 bottom-6 flex justify-center pointer-events-none">
+        <AnalysisStatus progress={progress} />
+      </div>
+    </div>
   );
 }
