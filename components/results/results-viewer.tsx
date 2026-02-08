@@ -301,7 +301,6 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
       <div className="h-screen w-screen bg-black flex flex-col">
       <div className="flex-1">
         <BrainAnimation progress={progress} />
-        <AnalysisStatus progress={progress} />
       </div>
 
       <div className="p-4 bg-neutral-900 text-white">
