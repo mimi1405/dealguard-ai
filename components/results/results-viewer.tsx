@@ -297,9 +297,11 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
             </TabsContent>
           </Tabs>
         </CardContent>
-      <BrainAnimation progress={progress}/>
-        
       </Card>
+      <div className="w-100vw">
+      <BrainAnimation progress={progress}/>
+      
+      </div>
     </div>
   );
 }
