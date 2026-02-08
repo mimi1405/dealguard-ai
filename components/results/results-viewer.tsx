@@ -303,5 +303,6 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
         <BrainAnimation progress={progress} />
       </div>
     </div>
+    </div>
   );
 }
