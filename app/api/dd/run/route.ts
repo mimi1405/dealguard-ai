@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (updErr) throw updErr;
 
     // 4) Trigger n8n (minimal contract: only deal_id)
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL_TEST;
     if (!n8nWebhookUrl) {
       return NextResponse.json({ error: "N8N_WEBHOOK_URL is not configured" }, { status: 500 });
     }
