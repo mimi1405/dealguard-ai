@@ -161,7 +161,6 @@ if (dbError) {
   throw dbError;
 }
 
-      // ✅ NEW: Trigger processing (chunk/extract) via your API route
       setProgress(90);
 
       const processRes = await fetch("/api/documents/process", {
@@ -169,18 +168,25 @@ if (dbError) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ deal_id: dealId, document_id: documentId }),
       });
-      
+
       if (!processRes.ok) {
-        let msg = `Failed to start processing (${processRes.status})`;
+        let msg = "Failed to start document processing";
+        let code = "UNKNOWN";
+
         try {
           const data = await processRes.json();
           if (data?.error) msg = data.error;
+          if (data?.code) code = data.code;
         } catch {
-          // ignore
+          msg = `Server error (${processRes.status})`;
         }
-      
-        // optional: cleanup the uploaded file too (depends on your preference)
-        // await supabase.storage.from("dealguard-docs").remove([storagePath]).catch(() => {});
+
+        console.error("[upload] Processing failed:", { status: processRes.status, code, msg });
+
+        if (code === "TIMEOUT") {
+          msg = "Document processing is taking too long. The upload succeeded, but it will be processed in the background.";
+        }
+
         throw new Error(msg);
       }
       
