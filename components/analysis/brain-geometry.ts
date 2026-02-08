@@ -1,9 +1,29 @@
-// Generates points distributed within a brain-like volume using
-// superellipsoid shaping with hemisphere asymmetry. Points are
-// rejection-sampled from a bounding box and kept only if they
-// fall inside the implicit brain surface.
-export function generateBrainPoints(count: number): Float32Array {
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface ActivationSeed {
+  position: Vec3;
+  phase: number;
+  speed: number;
+  radius: number;
+}
+
+export const MAX_SEEDS = 24;
+
+export interface BrainGeometryData {
+  positions: Float32Array;
+  baseAlphas: Float32Array;
+  surfaceFactors: Float32Array;
+  nearestSeedIndex: Int32Array;
+}
+
+export function generateBrainPoints(count: number): BrainGeometryData {
   const positions = new Float32Array(count * 3);
+  const baseAlphas = new Float32Array(count);
+  const surfaceFactors = new Float32Array(count);
   let idx = 0;
 
   const scaleX = 1.0;
@@ -19,14 +39,13 @@ export function generateBrainPoints(count: number): Float32Array {
     const ny = y / scaleY;
     const nz = z / scaleZ;
 
-    // Superellipsoid test — exponent 2.4 gives slightly boxy organic shape
-    const d = Math.pow(Math.abs(nx), 2.4)
-            + Math.pow(Math.abs(ny), 2.4)
-            + Math.pow(Math.abs(nz), 2.4);
+    const d =
+      Math.pow(Math.abs(nx), 2.4) +
+      Math.pow(Math.abs(ny), 2.4) +
+      Math.pow(Math.abs(nz), 2.4);
 
     if (d > 1.0) continue;
 
-    // Carve the longitudinal fissure (central groove on top)
     const fissureDepth = 0.08;
     const fissureWidth = 0.06;
     if (Math.abs(x) < fissureWidth && y > 0.1) {
@@ -34,41 +53,30 @@ export function generateBrainPoints(count: number): Float32Array {
       if (Math.abs(x) < groove) continue;
     }
 
-    // Flatten bottom slightly (brain stem area)
     if (y < -0.55 && Math.random() > 0.3) continue;
 
-    // Slight forward tilt bias — frontal lobe is slightly larger
     const frontBias = z > 0 ? 1.0 : 0.95;
     if (Math.random() > frontBias) continue;
 
     positions[idx * 3] = x;
     positions[idx * 3 + 1] = y;
     positions[idx * 3 + 2] = z;
+
+    baseAlphas[idx] = 0.2 + Math.random() * 0.8;
+    surfaceFactors[idx] = d;
+
     idx++;
   }
 
-  return positions;
-}
+  const nearestSeedIndex = new Int32Array(count);
 
-// Plain 3D vector — avoids importing Three.js in this pure-math module.
-export interface Vec3 {
-  x: number;
-  y: number;
-  z: number;
-}
-
-// Creates activation seed points scattered throughout the brain volume.
-// Each seed has a position, phase offset, and speed for independent timing.
-export interface ActivationSeed {
-  position: Vec3;
-  phase: number;
-  speed: number;
-  radius: number;
+  return { positions, baseAlphas, surfaceFactors, nearestSeedIndex };
 }
 
 export function generateActivationSeeds(count: number): ActivationSeed[] {
+  const clamped = Math.min(count, MAX_SEEDS);
   const seeds: ActivationSeed[] = [];
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < clamped; i++) {
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
     const r = Math.random() * 0.7;
@@ -84,4 +92,24 @@ export function generateActivationSeeds(count: number): ActivationSeed[] {
     });
   }
   return seeds;
+}
+
+export function packSeedsToUniforms(seeds: ActivationSeed[]): {
+  seedPositions: Float32Array;
+  seedParams: Float32Array;
+} {
+  const seedPositions = new Float32Array(MAX_SEEDS * 3);
+  const seedParams = new Float32Array(MAX_SEEDS * 3);
+
+  for (let i = 0; i < seeds.length; i++) {
+    const s = seeds[i];
+    seedPositions[i * 3] = s.position.x;
+    seedPositions[i * 3 + 1] = s.position.y;
+    seedPositions[i * 3 + 2] = s.position.z;
+    seedParams[i * 3] = s.phase;
+    seedParams[i * 3 + 1] = s.speed;
+    seedParams[i * 3 + 2] = s.radius;
+  }
+
+  return { seedPositions, seedParams };
 }

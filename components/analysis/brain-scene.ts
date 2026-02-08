@@ -1,17 +1,25 @@
-import { generateBrainPoints, generateActivationSeeds, ActivationSeed } from './brain-geometry';
+import {
+  generateBrainPoints,
+  generateActivationSeeds,
+  packSeedsToUniforms,
+  MAX_SEEDS,
+} from './brain-geometry';
 
-const VERTEX_SHADER = `
+const VERTEX_SHADER = /* glsl */ `
   attribute float aBaseAlpha;
-  attribute float aActivation;
+  attribute float aSurfaceFactor;
   attribute vec3 aOriginalPos;
 
   varying float vAlpha;
   varying float vActivation;
   varying float vDepth;
-  varying float vEdge;
 
   uniform float uTime;
   uniform float uPixelRatio;
+  uniform float uProgress;
+  uniform int uSeedCount;
+  uniform vec3 uSeedPositions[${MAX_SEEDS}];
+  uniform vec3 uSeedParams[${MAX_SEEDS}];
 
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
   vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -19,7 +27,7 @@ const VERTEX_SHADER = `
   vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
 
   float snoise(vec3 v) {
-    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+    const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
     const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
     vec3 i = floor(v + dot(v, C.yyy));
     vec3 x0 = v - i + dot(i, C.xxx);
@@ -58,7 +66,7 @@ const VERTEX_SHADER = `
     p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
     vec4 m = max(0.6 - vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)), 0.0);
     m = m * m;
-    return 42.0 * dot(m*m, vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+    return 42.0 * dot(m * m, vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
   }
 
   void main() {
@@ -78,21 +86,60 @@ const VERTEX_SHADER = `
 
     float r = length(aOriginalPos * vec3(1.0, 1.33, 1.18));
     float coreWeight = smoothstep(1.0, 0.3, r);
-    // Edge preservation: fade starts later (0.88 vs 0.83) to retain silhouette boundary
     float edgeFade = smoothstep(1.1, 0.88, r);
 
-    vAlpha = aBaseAlpha * 0.76 * mix(0.44, 1.0, coreWeight) * edgeFade;
+    float alpha = aBaseAlpha * 0.76 * mix(0.44, 1.0, coreWeight) * edgeFade;
 
-    // Center-weighted perceptual bias: edges ~0.9x, center ~1.3x
-    // Creates a noticeable density gradient that helps the brain read instantly
     float centerR = length(aOriginalPos);
     float centerBias = smoothstep(0.9, 0.2, centerR);
-    vAlpha *= mix(0.9, 1.3, centerBias);
+    alpha *= mix(0.9, 1.3, centerBias);
 
-    vAlpha += aActivation * 0.4;
+    // --- Stage-based progress modulation ---
+    // Stage 0 (0-0.2): sparse silhouette — only near-surface points visible
+    // Stage 1 (0.2-0.6): full silhouette fills in
+    // Stage 2 (0.6-0.9): activation pulses grow strong
+    // Stage 3 (0.9-1.0): final crisp glow
 
-    vActivation = aActivation;
-    vEdge = 1.0 - edgeFade;
+    float surfaceThreshold = mix(0.4, 1.0, smoothstep(0.0, 0.25, uProgress));
+    float surfaceGate = step(aSurfaceFactor, surfaceThreshold);
+    alpha *= surfaceGate;
+
+    float baseRamp = smoothstep(0.0, 0.5, uProgress);
+    alpha *= mix(0.15, 1.0, baseRamp);
+
+    // --- GPU-side activation computation ---
+    float activationStrength = smoothstep(0.2, 0.9, uProgress);
+    float maxAct = 0.0;
+
+    for (int i = 0; i < ${MAX_SEEDS}; i++) {
+      if (i >= uSeedCount) break;
+      vec3 seedPos = uSeedPositions[i];
+      vec3 params = uSeedParams[i];
+      float phase = params.x;
+      float speed = params.y;
+      float rad = params.z;
+
+      vec3 diff = aOriginalPos - seedPos;
+      float dist2 = dot(diff, diff);
+      float rad2 = rad * rad;
+
+      if (dist2 > rad2) continue;
+
+      float falloff = 1.0 - dist2 / rad2;
+      float pulse = sin(uTime * speed + phase) * 0.5 + 0.5;
+      float act = falloff * falloff * pulse;
+      maxAct = max(maxAct, act);
+    }
+
+    float activation = maxAct * activationStrength;
+    alpha += activation * 0.4;
+
+    // Stage 3: finishing glow
+    float glowPulse = smoothstep(0.88, 1.0, uProgress);
+    alpha *= 1.0 + glowPulse * 0.35;
+
+    vAlpha = alpha;
+    vActivation = activation;
 
     float viewZ = -mvPosition.z;
     vDepth = clamp((viewZ - 2.5) / 1.8, 0.0, 1.0);
@@ -101,15 +148,15 @@ const VERTEX_SHADER = `
   }
 `;
 
-const FRAGMENT_SHADER = `
+const FRAGMENT_SHADER = /* glsl */ `
   varying float vAlpha;
   varying float vActivation;
   varying float vDepth;
-  varying float vEdge;
 
   uniform vec3 uBaseColor;
   uniform vec3 uActiveColor;
   uniform vec3 uWarmColor;
+  uniform float uProgress;
 
   void main() {
     float dist = length(gl_PointCoord - vec2(0.5));
@@ -118,13 +165,14 @@ const FRAGMENT_SHADER = `
     float strength = 1.0 - smoothstep(0.0, 0.5, dist);
     strength = pow(strength, 2.0);
 
-    // Activation contrast: pow(0.6) expands mid-range for clearer hotspot form
     float actCurve = pow(vActivation, 0.6);
     vec3 color = mix(uBaseColor, uActiveColor, smoothstep(0.0, 0.4, actCurve));
     color = mix(color, uWarmColor, smoothstep(0.6, 1.0, actCurve) * 0.25);
 
+    float glowBright = smoothstep(0.88, 1.0, uProgress);
+    color += vec3(0.06, 0.05, 0.04) * glowBright;
+
     float depthDim = mix(1.0, 0.35, vDepth);
-    // Global visibility lift (1.25x) — scene no longer relies on barely-visible values
     float alpha = strength * vAlpha * depthDim * 1.25;
 
     gl_FragColor = vec4(color, alpha);
@@ -135,21 +183,19 @@ export interface BrainScene {
   mount: (container: HTMLElement) => Promise<void>;
   unmount: () => void;
   setReducedMotion: (reduced: boolean) => void;
+  setProgress: (p: number) => void;
 }
 
-// Three.js is loaded dynamically at mount time to avoid SSR resolution issues.
 export function createBrainScene(particleCount: number = 20000): BrainScene {
   let renderer: any = null;
   let scene: any = null;
   let camera: any = null;
   let animationId: number | null = null;
   let particles: any = null;
-  let activationAttr: any = null;
-  let seeds: ActivationSeed[] = [];
-  let positions: Float32Array | null = null;
   let reducedMotion = false;
   let clock: any = null;
   let resizeHandler: (() => void) | null = null;
+  let progress = 0;
 
   async function mount(container: HTMLElement) {
     const THREE = await import('three');
@@ -175,22 +221,46 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
     camera.position.set(0, 0.1, 3.2);
     camera.lookAt(0, 0, 0);
 
-    positions = generateBrainPoints(particleCount);
-    seeds = generateActivationSeeds(18);
+    const geo = generateBrainPoints(particleCount);
+    const seeds = generateActivationSeeds(18);
+    const packed = packSeedsToUniforms(seeds);
+
+    const seedPosVectors: any[] = [];
+    const seedParamVectors: any[] = [];
+    for (let i = 0; i < MAX_SEEDS; i++) {
+      seedPosVectors.push(
+        new THREE.Vector3(
+          packed.seedPositions[i * 3],
+          packed.seedPositions[i * 3 + 1],
+          packed.seedPositions[i * 3 + 2]
+        )
+      );
+      seedParamVectors.push(
+        new THREE.Vector3(
+          packed.seedParams[i * 3],
+          packed.seedParams[i * 3 + 1],
+          packed.seedParams[i * 3 + 2]
+        )
+      );
+    }
 
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions.slice(), 3));
-    geometry.setAttribute('aOriginalPos', new THREE.BufferAttribute(positions, 3));
-
-    const baseAlphas = new Float32Array(particleCount);
-    for (let i = 0; i < particleCount; i++) {
-      baseAlphas[i] = 0.2 + Math.random() * 0.8;
-    }
-    geometry.setAttribute('aBaseAlpha', new THREE.BufferAttribute(baseAlphas, 1));
-
-    const activations = new Float32Array(particleCount);
-    activationAttr = new THREE.BufferAttribute(activations, 1);
-    geometry.setAttribute('aActivation', activationAttr);
+    geometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(geo.positions.slice(), 3)
+    );
+    geometry.setAttribute(
+      'aOriginalPos',
+      new THREE.BufferAttribute(geo.positions, 3)
+    );
+    geometry.setAttribute(
+      'aBaseAlpha',
+      new THREE.BufferAttribute(geo.baseAlphas, 1)
+    );
+    geometry.setAttribute(
+      'aSurfaceFactor',
+      new THREE.BufferAttribute(geo.surfaceFactors, 1)
+    );
 
     const material = new THREE.ShaderMaterial({
       vertexShader: VERTEX_SHADER,
@@ -198,6 +268,10 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        uProgress: { value: 0 },
+        uSeedCount: { value: seeds.length },
+        uSeedPositions: { value: seedPosVectors },
+        uSeedParams: { value: seedParamVectors },
         uBaseColor: { value: new THREE.Color('#b8bcc0') },
         uActiveColor: { value: new THREE.Color('#d0d4d8') },
         uWarmColor: { value: new THREE.Color('#c8c4be') },
@@ -223,34 +297,13 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
 
     const animate = () => {
       animationId = requestAnimationFrame(animate);
-      if (!renderer || !scene || !camera || !particles || !activationAttr || !positions) return;
+      if (!renderer || !scene || !camera || !particles) return;
 
       const elapsed = clock.getElapsedTime();
-      particles.material.uniforms.uTime.value = elapsed;
+      const uniforms = particles.material.uniforms;
 
-      const actArr = activationAttr.array as Float32Array;
-      for (let i = 0; i < particleCount; i++) {
-        const px = positions[i * 3];
-        const py = positions[i * 3 + 1];
-        const pz = positions[i * 3 + 2];
-
-        let maxAct = 0;
-        for (let s = 0; s < seeds.length; s++) {
-          const seed = seeds[s];
-          const dx = px - seed.position.x;
-          const dy = py - seed.position.y;
-          const dz = pz - seed.position.z;
-          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-          const pulse = Math.sin(elapsed * seed.speed + seed.phase) * 0.5 + 0.5;
-          const falloff = Math.max(0, 1 - dist / seed.radius);
-          const activation = falloff * falloff * pulse;
-          if (activation > maxAct) maxAct = activation;
-        }
-
-        actArr[i] += (maxAct - actArr[i]) * 0.08;
-      }
-      activationAttr.needsUpdate = true;
+      uniforms.uTime.value = elapsed;
+      uniforms.uProgress.value = progress;
 
       if (!reducedMotion) {
         camera.position.x = Math.sin(elapsed * 0.05) * 0.03;
@@ -286,9 +339,6 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
     }
     scene = null;
     camera = null;
-    activationAttr = null;
-    positions = null;
-    seeds = [];
     clock = null;
   }
 
@@ -296,5 +346,9 @@ export function createBrainScene(particleCount: number = 20000): BrainScene {
     reducedMotion = reduced;
   }
 
-  return { mount, unmount, setReducedMotion };
+  function setProgress(p: number) {
+    progress = Math.max(0, Math.min(1, p));
+  }
+
+  return { mount, unmount, setReducedMotion, setProgress };
 }
