@@ -302,21 +302,6 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
       <div className="flex-1">
         <BrainAnimation progress={progress} />
       </div>
-
-      <div className="p-4 bg-white text-white">
-        <input
-          type="range"
-          min={0.0}
-          max={1}
-          value={progress * 1}
-          onChange={(e) => setProgress(Number(e.target.value) / 1)}
-          className="w-full"
-        />
-        <div className="mt-2 text-sm opacity-70">
-          progress = {progress.toFixed(3)}
-        </div>
-      </div>
-    </div>
     </div>
   );
 }
