@@ -123,7 +123,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
     switch (status) {
       case "completed":
         return "bg-green-500/10 text-green-500 border-green-500/20";
-      case "running":
+      case "processing":
         return "bg-white/10 text-white/70 border-white/10";
       case "failed":
         return "bg-red-500/10 text-red-500 border-red-500/20";
@@ -132,7 +132,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
     }
   };
 
-  const currentRun = runs.find((r) => r.status === "running");
+  const currentRun = runs.find((r) => r.status === "processing");
   const canTrigger = !loading && !currentRun && hasChunkedDoc && !checkingDocs;
 
   return (
