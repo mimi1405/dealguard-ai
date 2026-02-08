@@ -1,15 +1,29 @@
-'use client';
+// components/run/dd-run-manager.tsx
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Play, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
-import { Deal } from '@/lib/types/database';
-import { formatDistanceToNow } from 'date-fns';
-import { AnalysisStatus } from '../analysis/analysis-status';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Play,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw,
+  FileText,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Deal } from "@/lib/types/database";
+import { formatDistanceToNow } from "date-fns";
+import { AnalysisStatus } from "../analysis/analysis-status";
 
 interface DDRunManagerProps {
   dealId: string;
@@ -30,94 +44,107 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
   const supabase = createClient();
   const [runs, setRuns] = useState<DealRun[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+
+  const [hasChunkedDoc, setHasChunkedDoc] = useState(false);
+  const [checkingDocs, setCheckingDocs] = useState(true);
 
   useEffect(() => {
-    fetchRuns();
-    const interval = setInterval(fetchRuns, 5000);
+    fetchRunsAndReadiness();
+    const interval = setInterval(fetchRunsAndReadiness, 5000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dealId]);
 
-  const fetchRuns = async () => {
+  const fetchRunsAndReadiness = async () => {
     try {
+      // Deal status (analysis_status)
       const { data, error } = await supabase
-        .from('deals')
-        .select('id, analysis_status, created_at, updated_at')
-        .eq('id', dealId)
+        .from("deals")
+        .select("id, analysis_status, created_at, updated_at")
+        .eq("id", dealId)
         .maybeSingle();
 
       if (error) throw error;
+
       if (data) {
-        const run = {
+        const run: DealRun = {
           id: data.id,
           deal_id: dealId,
           status: data.analysis_status,
           started_at: data.updated_at,
-          finished_at: data.analysis_status === 'completed' ? data.updated_at : null,
+          finished_at: data.analysis_status === "completed" ? data.updated_at : null,
           n8n_execution_id: null,
         };
         setRuns([run]);
       }
+
+      // Readiness: at least one chunked document
+      setCheckingDocs(true);
+      const { data: chunkedDoc, error: docErr } = await supabase
+        .from("documents")
+        .select("id")
+        .eq("deal_id", dealId)
+        .eq("status", "chunked")
+        .limit(1)
+        .maybeSingle();
+
+      if (docErr) {
+        console.error("Error checking chunked docs:", docErr);
+        setHasChunkedDoc(false);
+      } else {
+        setHasChunkedDoc(!!chunkedDoc);
+      }
     } catch (err: any) {
-      console.error('Error fetching runs:', err);
+      console.error("Error fetching runs/readiness:", err);
+    } finally {
+      setCheckingDocs(false);
     }
   };
 
   const handleTriggerRun = async () => {
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       const runId = crypto.randomUUID();
 
-      const response = await fetch('/api/dd/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/dd/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dealId, runId }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to trigger run');
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to trigger run");
       }
 
-      await fetchRuns();
+      await fetchRunsAndReadiness();
       onRunComplete();
     } catch (err: any) {
-      setError(err.message || 'Failed to trigger due diligence run');
+      setError(err?.message || "Failed to trigger due diligence run");
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'running':
-        return <RefreshCw className="h-4 w-4 text-white/70 animate-spin" />;
-      case 'failed':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'running':
-        return 'bg-white/10 text-white/70 border-white/10';
-      case 'failed':
-        return 'bg-red-500/10 text-red-500 border-red-500/20';
+      case "completed":
+        return "bg-green-500/10 text-green-500 border-green-500/20";
+      case "running":
+        return "bg-white/10 text-white/70 border-white/10";
+      case "failed":
+        return "bg-red-500/10 text-red-500 border-red-500/20";
       default:
-        return 'bg-muted text-muted-foreground';
+        return "bg-muted text-muted-foreground";
     }
   };
 
-  const currentRun = runs.find(r => r.status === 'running');
-  const queuedRun = runs.find(r => r.status === 'queued');
+  const currentRun = runs.find((r) => r.status === "running");
+
+  const canTrigger = !loading && !currentRun && hasChunkedDoc && !checkingDocs;
 
   return (
     <div className="space-y-6">
@@ -128,6 +155,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
             Start an AI-powered analysis workflow via n8n. The system will extract facts, analyze documents, and generate scores.
           </CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-4">
           {error && (
             <Alert variant="destructive">
@@ -136,12 +164,17 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
             </Alert>
           )}
 
+          {!hasChunkedDoc && !checkingDocs && (
+            <Alert>
+              <FileText className="h-4 w-4" />
+              <AlertDescription>
+                Upload at least one document and wait until its status is <b>chunked</b> before running analysis.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="flex items-center gap-4">
-            <Button
-              onClick={handleTriggerRun}
-              disabled={loading || !!currentRun}
-              size="lg"
-            >
+            <Button onClick={handleTriggerRun} disabled={!canTrigger} size="lg">
               {loading ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -159,6 +192,7 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
                 </>
               )}
             </Button>
+
             {currentRun && (
               <Badge variant="outline" className={getStatusColor(currentRun.status)}>
                 {currentRun.status.toUpperCase()}
@@ -170,17 +204,11 @@ export function DDRunManager({ dealId, deal, onRunComplete }: DDRunManagerProps)
             <div className="p-4 bg-muted/50 rounded-lg space-y-3">
               <div className="text-sm space-y-2">
                 <div>
-                  <span className="text-muted-foreground">Started:</span>{' '}
+                  <span className="text-muted-foreground">Started:</span>{" "}
                   <span className="font-medium">
                     {formatDistanceToNow(new Date(currentRun.started_at), { addSuffix: true })}
                   </span>
                 </div>
-                {currentRun.n8n_execution_id && (
-                  <div>
-                    <span className="text-muted-foreground">Execution ID:</span>{' '}
-                    <span className="font-mono text-xs">{currentRun.n8n_execution_id}</span>
-                  </div>
-                )}
               </div>
               <AnalysisStatus />
             </div>
