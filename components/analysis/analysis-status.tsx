@@ -115,18 +115,14 @@ export function AnalysisStatus({ progress, className }: AnalysisStatusProps) {
   }, [progress, reducedMotion, currentMessage]);
 
   return (
-    <div
-      className={`flex items-center justify-center min-h-[1.5rem] ${className ?? ''}`}
-      role="status"
-      aria-live="polite"
-    >
-      <p
-        className={`text-xs tracking-[0.12em] text-muted-foreground transition-opacity duration-300 ${
-          isVisible ? 'opacity-75' : 'opacity-0'
-        }`}
-      >
-        {displayText}
-      </p>
+  <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
+    {/* Canvas mount target */}
+    <div ref={containerRef} className="absolute inset-0" />
+
+    {/* Status overlay */}
+    <div className="absolute bottom-6 left-0 right-0 flex justify-center pointer-events-none">
+      <AnalysisStatus progress={progress} />
     </div>
-  );
+  </div>
+);
 }
