@@ -9,7 +9,6 @@ import { AlertTriangle, CheckCircle, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { DealScore, CanonicalFact, Fact, SCORE_GRADE_LABELS } from '@/lib/types/database';
 import { BrainAnimation } from '@/components/analysis/brain-animation';
-import { AnalysisStatus } from '@/components/analysis/analysis-status';
 
 interface CategoryScoreRow {
   deal_id: string;
@@ -40,7 +39,6 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
   // Set to `true` now so the brain animation is always visible for inspection.
   const [analysisRunning] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     fetchResults();
@@ -107,7 +105,18 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
     }
   };
 
-  
+  if (analysisRunning || loading) {
+    return (
+      <div className="flex flex-col items-center justify-center">
+        <div className="w-full aspect-square overflow-hidden border border-white/[0.04]">
+          <BrainAnimation particleCount={20000} className="rounded-2xl" />
+        </div>
+        <p className="mt-6 text-xl text-muted-foreground tracking-wide animate-pulse">
+          Analyzing documents...
+        </p>
+      </div>
+    );
+  }
 
   if (!latestScore && canonicalFacts.length === 0) {
     return (
@@ -298,26 +307,6 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
           </Tabs>
         </CardContent>
       </Card>
-      <div className="h-screen w-screen bg-black flex flex-col">
-      <div className="flex-1">
-        <BrainAnimation progress={progress} />
-        <AnalysisStatus progress={progress} />
-      </div>
-
-      <div className="p-4 bg-neutral-900 text-white">
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={progress * 100}
-          onChange={(e) => setProgress(Number(e.target.value) / 100)}
-          className="w-full"
-        />
-        <div className="mt-2 text-sm opacity-70">
-          progress = {progress.toFixed(3)}
-        </div>
-      </div>
-    </div>
     </div>
   );
 }

@@ -1,28 +1,29 @@
-import { createBrowserClient } from '@supabase/ssr'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-let client: SupabaseClient | null = null
-
-const isPreview =
-  typeof window !== 'undefined' &&
-  window.location.hostname.includes('webcontainer')
+let client: SupabaseClient | null = null;
+let authListenerInitialized = false;
 
 export const createClient = () => {
-  if (client) return client
+  if (client) {
+    return client;
+  }
 
   client = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        autoRefreshToken: !isPreview, // 🔥 KEY LINE
-        persistSession: true,
-        detectSessionInUrl: true,
-      },
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  if (typeof window !== 'undefined') {
+    console.debug('[Supabase] Browser client initialized (singleton)');
+
+    if (!authListenerInitialized) {
+      authListenerInitialized = true;
+      client.auth.onAuthStateChange((event, session) => {
+        console.debug('[Supabase Auth]', event, session ? 'session present' : 'no session');
+      });
     }
-  )
+  }
 
-  console.debug('[Supabase] client init', { isPreview })
-
-  return client
-}
+  return client;
+};
