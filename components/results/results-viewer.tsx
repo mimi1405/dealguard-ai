@@ -297,6 +297,25 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
           </Tabs>
         </CardContent>
       </Card>
+      <div className="h-screen w-screen bg-black flex flex-col">
+      <div className="flex-1">
+        <BrainAnimation progress={progress} />
+      </div>
+
+      <div className="p-4 bg-neutral-900 text-white">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={progress * 100}
+          onChange={(e) => setProgress(Number(e.target.value) / 100)}
+          className="w-full"
+        />
+        <div className="mt-2 text-sm opacity-70">
+          progress = {progress.toFixed(3)}
+        </div>
+      </div>
+    </div>
     </div>
   );
 }
