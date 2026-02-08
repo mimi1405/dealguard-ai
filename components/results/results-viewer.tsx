@@ -110,6 +110,19 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
       <div className="flex flex-col items-center justify-center">
         <div className="w-64 aspect-square overflow-hidden border border-white/[0.04]">
           <BrainAnimation progress={100} className="rounded-2xl" />
+           <div className="p-4 bg-neutral-900 text-white">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={progress * 100}
+          onChange={(e) => setProgress(Number(e.target.value) / 100)}
+          className="w-full"
+        />
+        <div className="mt-2 text-sm opacity-70">
+          progress = {progress.toFixed(3)}
+        </div>
+      </div>
         </div>
         <p className="mt-6 text-xl text-muted-foreground tracking-wide animate-pulse">
           Analyzing documents...
