@@ -2,24 +2,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+type Body = { dealId?: string };
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = createAdminClient();
-    const { dealId, runId } = await request.json();
+    const body = (await request.json()) as Body;
 
-    if (!dealId || !runId) {
-      return NextResponse.json({ error: "dealId and runId are required" }, { status: 400 });
+    const dealId = (body.dealId ?? "").trim();
+    if (!dealId) {
+      return NextResponse.json({ error: "dealId is required" }, { status: 400 });
     }
 
     // 1) Ensure deal exists
     const { data: deal, error: dealError } = await supabase
       .from("deals")
-      .select("id")
+      .select("id, analysis_status")
       .eq("id", dealId)
       .maybeSingle();
 
-    if (dealError || !deal) {
+    if (dealError) {
+      return NextResponse.json(
+        { error: "Failed to load deal", details: dealError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!deal) {
       return NextResponse.json({ error: "Deal not found" }, { status: 404 });
+    }
+
+    // Optional: if already running, don't trigger again
+    if (deal.analysis_status === "running") {
+      return NextResponse.json(
+        { ok: true, skipped: true, reason: "already_running" },
+        { status: 200 }
+      );
     }
 
     // 2) Ensure at least one chunked document exists (hard guard)
@@ -31,7 +49,12 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .maybeSingle();
 
-    if (readyErr) throw readyErr;
+    if (readyErr) {
+      return NextResponse.json(
+        { error: "Failed to check documents", details: readyErr.message },
+        { status: 500 }
+      );
+    }
 
     if (!readyDoc) {
       return NextResponse.json(
@@ -40,25 +63,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3) Mark deal as running
-    const { error: updErr } = await supabase
-      .from("deals")
-      .update({ analysis_status: "running" })
-      .eq("id", dealId);
-
-    if (updErr) throw updErr;
-
-    // 4) Trigger n8n (minimal contract: only deal_id)
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL_TEST;
+    // 3) Trigger n8n (ONLY deal_id)
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
     if (!n8nWebhookUrl) {
-      return NextResponse.json({ error: "N8N_WEBHOOK_URL is not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "N8N_WEBHOOK_URL is not configured" },
+        { status: 500 }
+      );
     }
 
-    const r = await fetch(n8nWebhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deal_id: dealId }),
-    });
+    let r: Response;
+    try {
+      r = await fetch(n8nWebhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deal_id: dealId }),
+      });
+    } catch (e: any) {
+      return NextResponse.json(
+        { error: "Failed to reach n8n webhook", details: e?.message ?? String(e) },
+        { status: 502 }
+      );
+    }
 
     if (!r.ok) {
       const detail = (await r.text().catch(() => "")).slice(0, 500);
@@ -68,7 +94,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, runId, dealId }, { status: 200 });
+    // IMPORTANT: DO NOT set analysis_status here. n8n will do it.
+    return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error: any) {
     console.error("Error triggering DD run:", error);
     return NextResponse.json(
