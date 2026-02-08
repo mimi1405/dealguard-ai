@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createBrainScene, BrainScene } from './brain-scene';
-import { AnalysisStatus } from './analysis-status';
 
 interface BrainAnimationProps {
   particleCount?: number;
@@ -93,7 +92,7 @@ export function BrainAnimation({
   if (!webglSupported) {
     return (
       <div
-        className={`flex flex-col items-center justify-center gap-4 ${className ?? ''}`}
+        className={`flex flex-col items-center justify-center bg-[#0b0d10] gap-4 ${className ?? ''}`}
       >
         <div className="relative flex items-center justify-center">
           <svg
@@ -118,20 +117,12 @@ export function BrainAnimation({
           </svg>
           <div className="absolute h-2 w-2 rounded-full bg-white/20" />
         </div>
-        <AnalysisStatus progress={progress} />
+        <span className="text-xs tracking-widest text-white/30 uppercase">
+          Analyzing
+        </span>
       </div>
     );
   }
 
-  return (
-  <div className={`relative w-full h-full bg-[#0b0d10] ${className ?? ''}`}>
-    {/* Canvas */}
-    <div ref={containerRef} className="absolute inset-0 z-0" />
-
-    {/* Status */}
-    <div className="absolute bottom-8 left-0 right-0 z-10 flex justify-center pointer-events-none">
-      <AnalysisStatus progress={progress} />
-    </div>
-  </div>
-);
+  return ( <div ref={containerRef} className={w-full h-full bg-[#0b0d10] ${className ?? ''}} /> );
 }
