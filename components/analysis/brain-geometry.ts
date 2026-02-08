@@ -46,8 +46,8 @@ export function generateBrainPoints(count: number): BrainGeometryData {
   const cerebCenter = { x: 0.0, y: -0.38, z: -0.70 };
   const cerebScale = { x: 0.62, y: 0.42, z: 0.46 };
 
-  const stemCenter = { x: 0.0, y: -0.86, z: -0.22 };
-  const stemScale = { x: 0.18, y: 0.34, z: 0.18 };
+  const stemCenter = { x: 0.0, y: -0.74, z: -0.25 };
+const stemScale = { x: 0.12, y: 0.18, z: 0.12 };
 
   // Simple "fold" function to create sulci-like gaps (cheap, no noise lib)
   const fold = (nx: number, ny: number, nz: number) => {
