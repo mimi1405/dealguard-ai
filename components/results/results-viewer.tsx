@@ -95,7 +95,7 @@ export function ResultsViewer({ dealId }: ResultsViewerProps) {
   }
 
   return (
-    <div className="space-y-6 h-screen">
+    <div className="space-y-6">
       {latestScore && (
         <>
           <Card>
